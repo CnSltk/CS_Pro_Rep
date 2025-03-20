@@ -1,45 +1,34 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
 using APBD_02.Exceptions;
-    public class EmbeddedDevice
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public bool IsOn { get; set; }
-        public string IpAddress { get; set; }
-        public string NetworkName { get; set; }
 
-        public void SetIpAddress(string ipAddress)
+namespace APBD_02.Models
+{
+    public class EmbeddedDevice : Device
+    {
+        public string IPAddress { get; private set; }
+        public string NetworkName { get; private set; }
+
+        public EmbeddedDevice(int id, string name, string ip, string network) : base(id, name)
         {
-            var regex = new Regex(@"^(\d{1,3}\.){3}\d{1,3}$");
-            if (!regex.IsMatch(ipAddress))
+            if (!Regex.IsMatch(ip, @"^(\d{1,3}\.){3}\d{1,3}$"))
                 throw new ArgumentException("Invalid IP address format.");
 
-            IpAddress = ipAddress;
+            IPAddress = ip;
+            NetworkName = network;
         }
 
-        public void Connect()
+        public override void TurnOn()
         {
             if (!NetworkName.Contains("MD Ltd."))
-                throw new ConnectionException("Invalid network name.");
+                throw new ConnectionException();
 
-            Console.WriteLine($"Connected to {NetworkName} with IP {IpAddress}.");
-        }
-
-        public void TurnOn()
-        {
-            Connect(); // Connecting is part of turning on the device
-            IsOn = true;
-            Console.WriteLine($"{Name} is now ON.");
-        }
-
-        public void TurnOff()
-        {
-            IsOn = false;
-            Console.WriteLine($"{Name} is now OFF.");
+            base.TurnOn();
         }
 
         public override string ToString()
         {
-            return $"Embedded Device: {Name}, IP: {IpAddress}, Network: {NetworkName}, IsOn: {IsOn}";
+            return base.ToString() + $", IP: {IPAddress}, Network: {NetworkName}";
         }
     }
+}

@@ -1,33 +1,28 @@
-﻿using APBD_02.Exceptions;
-    public class PersonalComputer
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public bool IsOn { get; set; }
-        public string OperatingSystem { get; set; }
+﻿using System;
+using APBD_02.Exceptions;
 
-        public void Launch()
+namespace APBD_02.Models
+{
+    public class PersonalComputer : Device
+    {
+        public string OperatingSystem { get; private set; }
+
+        public PersonalComputer(int id, string name, string os) : base(id, name)
+        {
+            OperatingSystem = os;
+        }
+
+        public override void TurnOn()
         {
             if (string.IsNullOrEmpty(OperatingSystem))
-                throw new EmptySystemException("Operating system is not installed.");
+                throw new EmptySystemException();
 
-            IsOn = true;
-            Console.WriteLine($"Launching {Name} with {OperatingSystem}...");
-        }
-
-        public void TurnOn()
-        {
-            Launch(); 
-        }
-
-        public void TurnOff()
-        {
-            IsOn = false;
-            Console.WriteLine($"{Name} is now OFF.");
+            base.TurnOn();
         }
 
         public override string ToString()
         {
-            return $"Personal Computer: {Name}, OS: {OperatingSystem}, IsOn: {IsOn}";
+            return base.ToString() + $", OS: {OperatingSystem ?? "None"}";
         }
     }
+}
