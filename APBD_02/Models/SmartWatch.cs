@@ -1,5 +1,5 @@
 ﻿
-{
+using APBD_02.Exceptions;
     public class Smartwatch : IPowerNotifier
     {
         public string Id { get; set; }
@@ -43,4 +43,3 @@
             return $"Smartwatch: {Name}, Battery: {BatteryPercentage}%, IsOn: {IsOn}";
         }
     }
-}

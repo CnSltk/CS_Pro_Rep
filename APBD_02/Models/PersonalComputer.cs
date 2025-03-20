@@ -18,7 +18,7 @@
 
         public void TurnOn()
         {
-            Launch(); // Turning on a PC is equivalent to launching it
+            Launch(); 
         }
 
         public void TurnOff()
