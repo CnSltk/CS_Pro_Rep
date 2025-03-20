@@ -8,7 +8,7 @@ namespace APBD_02
     {
         static void Main(string[] args)
         {
-            string filePath = "devices.txt";  // Adjust file path as needed
+            string filePath = "input.txt";  // Adjust file path as needed
             DataLoader dataLoader = new DataLoader(filePath);
             List<Device> devices = dataLoader.LoadDevices();
 
