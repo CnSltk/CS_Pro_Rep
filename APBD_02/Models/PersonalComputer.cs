@@ -14,6 +14,7 @@ namespace APBD_02.Models
 
         public override void TurnOn()
         {
+            Console.WriteLine($"Attempting to turn on {Name} with OS: {OperatingSystem}");
             if (string.IsNullOrEmpty(OperatingSystem))
                 throw new EmptySystemException();
 

@@ -19,7 +19,7 @@ namespace APBD_02.Tests
             };
         }
 
-        // ✅ Test: Turning on a smartwatch should reduce battery by 10%
+        // Test: Turning on a smartwatch should reduce battery by 10%
         [Fact]
         public void TurnOnSmartwatch_ShouldReduceBattery()
         {
@@ -33,7 +33,7 @@ namespace APBD_02.Tests
             Assert.Equal(40, watch.BatteryPercentage);
         }
 
-        // ✅ Test: Turning on a smartwatch with low battery should throw exception
+        // Test: Turning on a smartwatch with low battery should throw exception
         [Fact]
         public void TurnOnSmartwatch_LowBattery_ShouldThrowException()
         {
@@ -44,7 +44,7 @@ namespace APBD_02.Tests
             Assert.Throws<EmptyBatteryException>(() => watch.TurnOn());
         }
 
-        // ✅ Test: Personal computer should not turn on if OS is missing
+        // Test: Personal computer should not turn on if OS is missing
         [Fact]
         public void TurnOnPersonalComputer_NoOS_ShouldThrowException()
         {
@@ -55,7 +55,7 @@ namespace APBD_02.Tests
             Assert.Throws<EmptySystemException>(() => pc.TurnOn());
         }
 
-        // ✅ Test: Embedded device should not turn on if connected to the wrong network
+        // Test: Embedded device should not turn on if connected to the wrong network
         [Fact]
         public void TurnOnEmbeddedDevice_InvalidNetwork_ShouldThrowException()
         {
@@ -66,7 +66,7 @@ namespace APBD_02.Tests
             Assert.Throws<ConnectionException>(() => device.TurnOn());
         }
 
-        // ✅ Test: Turning off a device should change status
+        // Test: Turning off a device should change status
         [Fact]
         public void TurnOffDevice_ShouldChangeStatus()
         {
@@ -81,7 +81,7 @@ namespace APBD_02.Tests
             Assert.False(pc.IsTurnedOn);
         }
 
-        // ✅ Test: Ensure the correct string format for `ToString()`
+        // Test: Ensure the correct string format for `ToString()`
         [Fact]
         public void DeviceToString_ShouldReturnCorrectFormat()
         {

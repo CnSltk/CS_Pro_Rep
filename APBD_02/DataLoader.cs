@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using APBD_02.Models;
-using APBD_02.Exceptions;
 
 namespace APBD_02
 {
@@ -21,39 +20,47 @@ namespace APBD_02
 
             if (!File.Exists(_filePath))
             {
-                Console.WriteLine("File not found!");
+                Console.WriteLine($"❌ Error: File not found -> {_filePath}");
                 return devices;
             }
 
             string[] lines = File.ReadAllLines(_filePath);
-            foreach (string line in lines)
+
+            foreach (var line in lines)
             {
+                string[] parts = line.Split(',');
+
+                if (parts.Length < 3)
+                {
+                    Console.WriteLine($"Skipping invalid line: {line}");
+                    continue;
+                }
+
+                string type = parts[0];
+
                 try
                 {
-                    string[] parts = line.Split(',');
-
-                    if (parts.Length < 2) continue; // Ignore corrupted lines
-
-                    int id = int.Parse(parts[0]);
-                    string name = parts[1];
-                    string type = parts[2];
-
-                    switch (type)
+                    switch (type[0])
                     {
-                        case "SW":
-                            int battery = int.Parse(parts[3]);
-                            devices.Add(new Smartwatch(id, name, battery));
+                        case 'S': // Smartwatch
+                            string name = parts[1];
+                            bool isOn = bool.Parse(parts[2]);
+                            int battery = int.Parse(parts[3].Replace("%", "")); // Remove % sign
+                            devices.Add(new Smartwatch(devices.Count + 1, name, battery));
                             break;
 
-                        case "P":
-                            string os = parts[3];
-                            devices.Add(new PersonalComputer(id, name, os));
+                        case 'P': // Personal Computer
+                            string pcName = parts[1];
+                            bool isPcOn = bool.Parse(parts[2]);
+                            string os = parts.Length > 3 ? parts[3] : "Unknown OS";
+                            devices.Add(new PersonalComputer(devices.Count + 1, pcName, os));
                             break;
 
-                        case "ED":
-                            string ip = parts[3];
-                            string network = parts[4];
-                            devices.Add(new EmbeddedDevice(id, name, ip, network));
+                        case 'E': // Embedded Device
+                            string edName = parts[1];
+                            string ip = parts[2];
+                            string network = parts[3];
+                            devices.Add(new EmbeddedDevice(devices.Count + 1, edName, ip, network));
                             break;
 
                         default:
@@ -61,11 +68,12 @@ namespace APBD_02
                             break;
                     }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Console.WriteLine($"Error parsing line: {e.Message}");
+                    Console.WriteLine($"Error processing line: {line}\n{ex.Message}");
                 }
             }
+
             return devices;
         }
     }
