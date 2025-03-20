@@ -1,5 +1,4 @@
-﻿
-using APBD_02.Exceptions;
+﻿using APBD_02.Exceptions;
     public class Smartwatch : IPowerNotifier
     {
         public string Id { get; set; }

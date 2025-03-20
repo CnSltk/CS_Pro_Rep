@@ -1,5 +1,5 @@
-﻿
-using System.Text.RegularExpressions;{
+﻿using System.Text.RegularExpressions;
+using APBD_02.Exceptions;
     public class EmbeddedDevice
     {
         public string Id { get; set; }
@@ -43,4 +43,3 @@ using System.Text.RegularExpressions;{
             return $"Embedded Device: {Name}, IP: {IpAddress}, Network: {NetworkName}, IsOn: {IsOn}";
         }
     }
-}

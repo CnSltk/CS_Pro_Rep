@@ -1,5 +1,4 @@
-﻿
-{
+﻿using APBD_02.Exceptions;
     public class PersonalComputer
     {
         public string Id { get; set; }
@@ -32,4 +31,3 @@
             return $"Personal Computer: {Name}, OS: {OperatingSystem}, IsOn: {IsOn}";
         }
     }
-}
