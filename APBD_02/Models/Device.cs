@@ -2,6 +2,9 @@
 
 namespace APBD_02.Models
 {
+    /// <summary>
+    /// Device main class for devices
+    /// </summary>
     public abstract class Device
     {
         public int Id { get; set; }

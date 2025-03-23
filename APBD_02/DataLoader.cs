@@ -5,6 +5,9 @@ using APBD_02.Models;
 
 namespace APBD_02
 {
+    /// <summary>
+    /// Loads data from input file
+    /// </summary>
     public class DataLoader
     {
         private readonly string _filePath;
