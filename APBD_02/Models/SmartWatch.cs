@@ -20,11 +20,11 @@ namespace APBD_02.Models
         {
             if (IsTurnedOn)
             {
-                Console.WriteLine($"⚠️ {Name} is already ON!");
+                Console.WriteLine($"{Name} is already ON!");
                 return;
             }
 
-            Console.WriteLine($"🔋 Attempting to turn on {Name} with {BatteryPercentage}% battery...");
+            Console.WriteLine($"Attempting to turn on {Name} with {BatteryPercentage}% battery...");
 
             if (BatteryPercentage < 10)
                 throw new EmptyBatteryException();
@@ -34,24 +34,24 @@ namespace APBD_02.Models
 
             BatteryPercentage -= 10;
             base.TurnOn();
-            Console.WriteLine($"✅ {Name} is now ON! 🔋 Battery: {BatteryPercentage}%");
+            Console.WriteLine($"{Name} is now ON! 🔋 Battery: {BatteryPercentage}%");
         }
 
         public override void TurnOff()
         {
             if (!IsTurnedOn)
             {
-                Console.WriteLine($"⚠️ {Name} is already OFF!");
+                Console.WriteLine($"{Name} is already OFF!");
                 return;
             }
 
             base.TurnOff();
-            Console.WriteLine($"⏻ {Name} is now OFF.");
+            Console.WriteLine($"{Name} is now OFF.");
         }
 
         public void NotifyLowBattery()
         {
-            Console.WriteLine($"⚠️ Warning: {Name} has LOW BATTERY! 🔋 Battery: {BatteryPercentage}%");
+            Console.WriteLine($"Warning: {Name} has LOW BATTERY! Battery: {BatteryPercentage}%");
         }
 
         public override string ToString()

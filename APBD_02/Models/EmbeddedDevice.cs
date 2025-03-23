@@ -20,7 +20,7 @@ namespace APBD_02.Models
 
         public override void TurnOn()
         {
-            Console.WriteLine($"🌐 Attempting to connect {Name} to network {NetworkName}...");
+            Console.WriteLine($"Attempting to connect {Name} to network {NetworkName}...");
 
             if (!NetworkName.Contains("MD Ltd."))
                 throw new ConnectionException();
