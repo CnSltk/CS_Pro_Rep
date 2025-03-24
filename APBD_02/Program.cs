@@ -5,7 +5,7 @@ class Program
 {
     static void Main()
     {
-        string filePath = "C:\\Users\\cansa\\RiderProjects\\APBD_02\\APBD_02\\input.txt";
+        string filePath = "input.txt";
         DataLoader loader = new DataLoader(filePath);
         List<Device> devices = loader.LoadDevices();
 
