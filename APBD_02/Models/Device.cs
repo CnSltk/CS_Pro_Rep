@@ -7,11 +7,11 @@ namespace APBD_02.Models
     /// </summary>
     public abstract class Device
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
         public string Name { get; set; }
         public bool IsTurnedOn { get; private set; }
 
-        protected Device(int id, string name)
+        protected Device(string id, string name)
         {
             Id = id;
             Name = name;
