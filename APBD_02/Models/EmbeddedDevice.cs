@@ -19,6 +19,10 @@ namespace APBD_02.Models
             IPAddress = ip;
             NetworkName = network;
         }
+        /// <summary>
+        /// Try to connect to a network
+        /// </summary>
+        /// <exception cref="ConnectionException"></exception>
 
         public override void TurnOn()
         {
@@ -31,6 +35,9 @@ namespace APBD_02.Models
             base.TurnOn();
             
         }
+        /// <summary>
+        /// Turns off a EmbeddedDevice if its already turned on
+        /// </summary>
 
         public override void TurnOff()
         {

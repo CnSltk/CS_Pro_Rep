@@ -1,5 +1,4 @@
-﻿using System;
-using APBD_02.Exceptions;
+﻿using APBD_02.Exceptions;
 
 namespace APBD_02.Models
 {
@@ -11,7 +10,11 @@ namespace APBD_02.Models
         {
             OperatingSystem = os;
         }
-
+        
+        /// <summary>
+        /// Turns on the personal computer if an operating system is installed.
+        /// </summary>
+        /// <exception cref="EmptySystemException">Thrown when the OS is empty or null.</exception>
         public override void TurnOn()
         {
             Console.WriteLine($"Attempting to turn on {Name} with OS: {OperatingSystem}");
@@ -20,6 +23,7 @@ namespace APBD_02.Models
 
             base.TurnOn();
         }
+        
 
         public override string ToString()
         {
