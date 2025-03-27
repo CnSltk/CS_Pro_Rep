@@ -7,7 +7,7 @@ namespace APBD_02.Models
     {
         public string OperatingSystem { get; private set; }
 
-        public PersonalComputer(int id, string name, string os) : base(id, name)
+        public PersonalComputer(string id, string name, string os) : base(id, name)
         {
             OperatingSystem = os;
         }

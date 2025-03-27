@@ -8,7 +8,7 @@ namespace APBD_02.Models
     {
         public int BatteryPercentage { get; private set; }
 
-        public Smartwatch(int id, string name, int battery) : base(id, name)
+        public Smartwatch(string id, string name, int battery) : base(id, name)
         {
             if (battery < 0 || battery > 100)
                 throw new ArgumentException("Battery percentage must be between 0 and 100.");
