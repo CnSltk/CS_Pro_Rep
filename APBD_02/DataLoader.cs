@@ -28,7 +28,7 @@ namespace APBD_02
 
             if (!File.Exists(_filePath))
             {
-                Console.WriteLine($"❌ Error: File not found -> {_filePath}");
+                Console.WriteLine($"Error: File not found -> {_filePath}");
                 return devices;
             }
 
@@ -44,7 +44,7 @@ namespace APBD_02
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"❌ Error processing line: {line}\n{ex.Message}");
+                    Console.WriteLine($"Error processing line: {line}\n{ex.Message}");
                 }
             }
 

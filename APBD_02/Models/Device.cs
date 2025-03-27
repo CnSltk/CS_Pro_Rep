@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace APBD_02.Models
+﻿namespace APBD_02.Models
 {
     /// <summary>
     /// Device main class for devices
