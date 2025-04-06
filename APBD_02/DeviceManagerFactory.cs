@@ -8,9 +8,9 @@ namespace APBD_02
     /// </summary>
     public static class DeviceManagerFactory
     {
-        public static DeviceManager Create(List<Device> devices)
+        public static DeviceManager Create(IDeviceLoader loader, string filePath)
         {
-            return new DeviceManager(devices);
+            return new DeviceManager(loader, filePath);
         }
     }
 }

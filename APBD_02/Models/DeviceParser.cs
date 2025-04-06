@@ -2,40 +2,33 @@
 using APBD_02.Models;
 using APBD_02.Exceptions;
 
-namespace APBD_02
+namespace APBD_02.Services
 {
     /// <summary>
-    /// Factory responsible for parsing device input lines and creating device objects.
+    /// Responsible for parsing device input lines and creating device objects.
     /// </summary>
-    public static class DeviceFactory
+    public class DeviceParser : IDeviceParser
     {
-        public static Device CreateFromLine(string line)
+        public Device Parse(string line)
         {
             var parts = line.Split(',');
 
             if (parts.Length < 2)
                 throw new ArgumentException("Line has insufficient data.");
 
-            string id = parts[0].Trim(); // e.g., SW-1, P-2, ED-3
+            string id = parts[0].Trim();
             string typePrefix = id.Substring(0, 2).ToUpper();
 
-            switch (typePrefix)
+            return typePrefix switch
             {
-                case "SW":
-                    return CreateSmartwatch(parts);
-
-                case "P-":
-                    return CreatePersonalComputer(parts);
-
-                case "ED":
-                    return CreateEmbeddedDevice(parts);
-
-                default:
-                    throw new ArgumentException($"Unknown device type: {id}");
-            }
+                "SW" => ParseSmartwatch(parts),
+                "P-" => ParsePersonalComputer(parts),
+                "ED" => ParseEmbeddedDevice(parts),
+                _ => throw new ArgumentException($"Unknown device type: {id}")
+            };
         }
 
-        private static Smartwatch CreateSmartwatch(string[] parts)
+        private Smartwatch ParseSmartwatch(string[] parts)
         {
             if (parts.Length < 4)
                 throw new FormatException("Invalid smartwatch data.");
@@ -47,7 +40,7 @@ namespace APBD_02
             return new Smartwatch(id, name, battery);
         }
 
-        private static PersonalComputer CreatePersonalComputer(string[] parts)
+        private PersonalComputer ParsePersonalComputer(string[] parts)
         {
             if (parts.Length < 3)
                 throw new FormatException("Invalid PC data.");
@@ -59,7 +52,7 @@ namespace APBD_02
             return new PersonalComputer(id, name, os);
         }
 
-        private static EmbeddedDevice CreateEmbeddedDevice(string[] parts)
+        private EmbeddedDevice ParseEmbeddedDevice(string[] parts)
         {
             if (parts.Length < 4)
                 throw new FormatException("Invalid embedded device data.");

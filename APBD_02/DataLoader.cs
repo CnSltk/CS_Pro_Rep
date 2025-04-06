@@ -2,49 +2,36 @@
 using System.Collections.Generic;
 using System.IO;
 using APBD_02.Models;
+using APBD_02.Services;
 
 namespace APBD_02
 {
     /// <summary>
-    /// Loads devices from a specified file path.
-    /// Responsible only for reading lines and passing them to the factory.
+    /// Loads devices from a source using an injected parser.
     /// </summary>
-    public class DataLoader
+    public class DataLoader : IDeviceLoader
     {
-        private readonly string _filePath;
+        private readonly IDeviceParser _deviceParser;
 
-        public DataLoader(string filePath)
+        public DataLoader(IDeviceParser deviceParser)
         {
-            _filePath = filePath;
+            _deviceParser = deviceParser;
         }
 
-        /// <summary>
-        /// Loads and parses devices from the input file.
-        /// </summary>
-        /// <returns>A list of valid devices</returns>
-        public List<Device> LoadDevices()
+        public List<Device> LoadDevicesFromFile(string filePath)
         {
             var devices = new List<Device>();
 
-            if (!File.Exists(_filePath))
-            {
-                Console.WriteLine($"Error: File not found -> {_filePath}");
-                return devices;
-            }
-
-            string[] lines = File.ReadAllLines(_filePath);
-
-            foreach (var line in lines)
+            foreach (var line in File.ReadLines(filePath))
             {
                 try
                 {
-                    var device = DeviceFactory.CreateFromLine(line);
-                    if (device != null)
-                        devices.Add(device);
+                    var device = _deviceParser.Parse(line);
+                    devices.Add(device);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing line: {line}\n{ex.Message}");
+                    Console.WriteLine($"[WARNING] Could not parse line: '{line}' -> {ex.Message}");
                 }
             }
 

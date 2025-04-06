@@ -1,5 +1,8 @@
-﻿using APBD_02;
+﻿using System;
+using APBD_02;
 using APBD_02.Models;
+using APBD_02.Services;
+
 class Program
 {
     static void Main()
@@ -7,54 +10,68 @@ class Program
         try
         {
             string filePath = "input.txt";
-            DataLoader loader = new DataLoader(filePath);
-            List<Device> devices = loader.LoadDevices();
+            string savePath = "output.txt";
 
-            DeviceManager manager = DeviceManagerFactory.Create(devices);
-
-            Console.WriteLine("\nLoaded Devices:");
-            manager.ShowDevices();
+            IDeviceParser parser = new DeviceParser();
+            IDeviceLoader loader = new DataLoader(parser);
+            var manager = new DeviceManager(loader, filePath);
 
             while (true)
             {
-                Console.WriteLine("\n Choose an action:");
-                Console.WriteLine("1 Turn on a device");
-                Console.WriteLine("2 Turn off a device");
-                Console.WriteLine("3 Show all devices");
-                Console.WriteLine("4 Exit");
-                Console.Write("Please enter your choice: ");
+                Console.WriteLine("\nDEVICE MANAGER MENU:");
+                manager.DisplayAllDevices();
+                Console.WriteLine("1. Turn ON a device");
+                Console.WriteLine("2. Turn OFF a device");
+                Console.WriteLine("3. Delete a device");
+                Console.WriteLine("4. Save devices to file");
+                Console.WriteLine("0. Exit");
+                Console.Write("Choose an option: ");
+                string? option = Console.ReadLine();
 
-                string choice = Console.ReadLine();
-
-                switch (choice)
+                switch (option)
                 {
+
                     case "1":
-                        Console.Write("Enter device name or ID to turn ON: ");
-                        manager.TurnOnDevice(Console.ReadLine());
+                        Console.Write("Enter Device ID to turn ON: ");
+                        string? idOn = Console.ReadLine();
+                        if (!manager.TurnOnDevice(idOn))
+                            Console.WriteLine("Could not turn on device.");
                         break;
 
                     case "2":
-                        Console.Write("Enter device name or ID to turn OFF: ");
-                        manager.TurnOffDevice(Console.ReadLine());
+                        Console.Write("Enter Device ID to turn OFF: ");
+                        string? idOff = Console.ReadLine();
+                        if (!manager.TurnOffDevice(idOff))
+                            Console.WriteLine("Could not turn off device.");
                         break;
 
                     case "3":
-                        manager.ShowDevices();
+                        Console.Write("Enter Device ID to delete: ");
+                        string? idDel = Console.ReadLine();
+                        if (manager.DeleteById(idDel))
+                            Console.WriteLine("Device deleted.");
+                        else
+                            Console.WriteLine("Device not found.");
                         break;
 
                     case "4":
-                        Console.WriteLine("Exiting the application...");
+                        manager.SaveDevicesToFile(savePath);
+                        Console.WriteLine($"Devices saved to '{savePath}'.");
+                        break;
+
+                    case "0":
+                        Console.WriteLine("Exiting. Goodbye!");
                         return;
 
                     default:
-                        Console.WriteLine("Invalid choice! Please try again.");
+                        Console.WriteLine("Invalid choice.");
                         break;
                 }
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine(e.Message);
+            Console.WriteLine($"[ERROR] {e.Message}");
         }
     }
 }

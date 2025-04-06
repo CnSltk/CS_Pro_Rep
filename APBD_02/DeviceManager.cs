@@ -1,68 +1,101 @@
-﻿using APBD_02.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using APBD_02.Models;
 
 namespace APBD_02
 {
     /// <summary>
-    /// Manages a list of devices and allows operations on them
+    /// Manages a list of devices: display, find, delete, edit, turn on/off, and save.
     /// </summary>
     public class DeviceManager
     {
+        private const int MaxCapacity = 15;
         private readonly List<Device> _devices;
-        public DeviceManager(List<Device> devices)
+
+        public DeviceManager(IDeviceLoader loader, string filePath)
         {
-            _devices = devices;
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException("Device file not found.");
+
+            _devices = loader.LoadDevicesFromFile(filePath);
         }
 
-        public void ShowDevices()
+        public void DisplayAllDevices()
         {
-            Console.WriteLine("Devices:");
             foreach (var device in _devices)
             {
                 Console.WriteLine(device);
             }
         }
 
-        public void TurnOnDevice(string input)
+        public Device? GetById(string id)
         {
-            var device = FindDevice(input);
-            if (device==null)
-            {
-                Console.WriteLine("Device not found");
-                return;
-            }
+            return _devices.Find(d => d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public bool DeleteById(string id)
+        {
+            var device = GetById(id);
+            if (device == null) return false;
+
+            _devices.Remove(device);
+            return true;
+        }
+
+        public bool Add(Device device)
+        {
+            if (_devices.Count >= MaxCapacity)
+                throw new InvalidOperationException("Device capacity reached (15 devices max).");
+
+            _devices.Add(device);
+            return true;
+        }
+
+        public bool Update(string id, Device newDevice)
+        {
+            var index = _devices.FindIndex(d => d.Id == id);
+            if (index == -1) return false;
+
+            _devices[index] = newDevice;
+            return true;
+        }
+
+        public bool TurnOnDevice(string id)
+        {
+            var device = GetById(id);
+            if (device == null) return false;
 
             try
             {
                 device.TurnOn();
+                return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Cannot turn on device: {ex.Message}");
+                Console.WriteLine($"[ERROR] {ex.Message}");
+                return false;
             }
         }
 
-        public void TurnOffDevice(string input)
+        public bool TurnOffDevice(string id)
         {
-            var device = FindDevice(input);
-            {
-                Console.WriteLine("Device not found.");
-                return;
-            }
+            var device = GetById(id);
+            if (device == null) return false;
 
             device.TurnOff();
+            return true;
         }
-        private Device FindDevice(string input)
+
+        public void SaveDevicesToFile(string path)
         {
-            
+            var lines = new List<string>();
+            foreach (var device in _devices)
             {
-                foreach (var device in _devices)
-                {
-                    if (device.Name.Equals(input, StringComparison.OrdinalIgnoreCase) || device.Id.ToString() == input)
-                        return device;
-                }
-                return null;
+                lines.Add(device.ToString()); // Replace with ToFileFormat() if needed
             }
+
+            File.WriteAllLines(path, lines);
         }
     }
 }
-
