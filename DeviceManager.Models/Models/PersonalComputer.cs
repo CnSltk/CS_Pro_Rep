@@ -1,15 +1,18 @@
-﻿using APBD_02.Exceptions;
+﻿using System.Text.Json.Serialization;
+using APBD_02.Exceptions;
 
 namespace APBD_02.Models
 {
     public class PersonalComputer : Device
     {
-        public string OperatingSystem { get; private set; }
+        public string OperatingSystem { get; set; }
 
+        [JsonConstructor]
         public PersonalComputer(string id, string name, string os) : base(id, name)
         {
             OperatingSystem = os;
         }
+
         
         /// <summary>
         /// Turns on the personal computer if an operating system is installed.

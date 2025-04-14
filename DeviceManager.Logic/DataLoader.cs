@@ -9,16 +9,11 @@ namespace APBD_02
     /// <summary>
     /// Loads devices from a source using an injected parser.
     /// </summary>
-    public class DataLoader : IDeviceLoader
+    public class DataLoader
     {
-        private readonly IDeviceParser _deviceParser;
+        
 
-        public DataLoader(IDeviceParser deviceParser)
-        {
-            _deviceParser = deviceParser;
-        }
-
-        public List<Device> LoadDevicesFromFile(string filePath)
+        public static List<Device> LoadDevicesFromFile(string filePath)
         {
             var devices = new List<Device>();
 
@@ -26,7 +21,7 @@ namespace APBD_02
             {
                 try
                 {
-                    var device = _deviceParser.Parse(line);
+                    var device = DeviceParser.Parse(line);
                     devices.Add(device);
                 }
                 catch (Exception ex)

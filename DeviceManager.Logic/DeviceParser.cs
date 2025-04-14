@@ -7,9 +7,9 @@ namespace APBD_02.Services
     /// <summary>
     /// Responsible for parsing device input lines and creating device objects.
     /// </summary>
-    public class DeviceParser : IDeviceParser
+    public class DeviceParser
     {
-        public Device Parse(string line)
+        public static Device Parse(string line)
         {
             var parts = line.Split(',');
 
@@ -28,7 +28,7 @@ namespace APBD_02.Services
             };
         }
 
-        private Smartwatch ParseSmartwatch(string[] parts)
+        private static Smartwatch ParseSmartwatch(string[] parts)
         {
             if (parts.Length < 4)
                 throw new FormatException("Invalid smartwatch data.");
@@ -40,7 +40,7 @@ namespace APBD_02.Services
             return new Smartwatch(id, name, battery);
         }
 
-        private PersonalComputer ParsePersonalComputer(string[] parts)
+        private static PersonalComputer ParsePersonalComputer(string[] parts)
         {
             if (parts.Length < 3)
                 throw new FormatException("Invalid PC data.");
@@ -52,7 +52,7 @@ namespace APBD_02.Services
             return new PersonalComputer(id, name, os);
         }
 
-        private EmbeddedDevice ParseEmbeddedDevice(string[] parts)
+        private static EmbeddedDevice ParseEmbeddedDevice(string[] parts)
         {
             if (parts.Length < 4)
                 throw new FormatException("Invalid embedded device data.");

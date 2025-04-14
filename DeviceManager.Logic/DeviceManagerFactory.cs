@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using APBD_02.Models;
+using DeviceLibrary;
 
 namespace APBD_02
 {
@@ -8,9 +9,9 @@ namespace APBD_02
     /// </summary>
     public static class DeviceManagerFactory
     {
-        public static DeviceManager Create(IDeviceLoader loader, string filePath)
+        public static DeviceManager Create(string filePath)
         {
-            return new DeviceManager(loader, filePath);
+            return new DeviceManager(filePath);
         }
     }
 }

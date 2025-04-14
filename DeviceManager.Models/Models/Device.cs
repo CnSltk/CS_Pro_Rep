@@ -9,11 +9,10 @@
         public string Name { get; set; }
         public bool IsTurnedOn { get; private set; }
 
-        protected Device(string id, string name)
+        public Device(string id, string name)
         {
             Id = id;
             Name = name;
-            IsTurnedOn = false;
         }
 
         public virtual void TurnOn()

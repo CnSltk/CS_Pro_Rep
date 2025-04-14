@@ -1,24 +1,22 @@
-﻿using APBD_02.Exceptions;
+﻿using System.Text.Json.Serialization;
+using APBD_02.Exceptions;
 using APBD_02.InterFaces;
 
 namespace APBD_02.Models
 {
     public class Smartwatch : Device, IPowerNotifier
     {
-        public int BatteryPercentage { get; private set; }
+        public int BatteryPercentage { get; set; }
 
-        public Smartwatch(string id, string name, int battery) : base(id, name)
+        [JsonConstructor]
+        public Smartwatch(string id, string name, int batteryPercentage) : base(id, name)
         {
-            if (battery < 0 || battery > 100)
+            if (batteryPercentage < 0 || batteryPercentage > 100)
                 throw new ArgumentException("Battery percentage must be between 0 and 100.");
 
-            BatteryPercentage = battery;
+            BatteryPercentage = batteryPercentage;
         }
-/// <summary>
-/// turns on a SmartWatch, if the batter is less than 20 gives notification about low batter. If device is already ON,
-/// tells user. Every Turn on takes away 10% battery.
-/// </summary>
-/// <exception cref="EmptyBatteryException">tells user the battery is empty if the batter is below 10%</exception>
+
         public override void TurnOn()
         {
             if (IsTurnedOn)

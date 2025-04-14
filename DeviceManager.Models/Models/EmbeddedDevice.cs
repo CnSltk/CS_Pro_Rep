@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using APBD_02.Exceptions;
 
@@ -6,11 +7,12 @@ namespace APBD_02.Models
 {
     public class EmbeddedDevice : Device
     {
-        public string IPAddress { get; private set; }
-        public string NetworkName { get; private set; }
-        public bool IsConnected { get; private set; }
+        public string IPAddress { get;  set; }
+        public string NetworkName { get;  set; }
+        public bool IsConnected { get;  set; }
 
 
+        [JsonConstructor]
         public EmbeddedDevice(string id, string name, string ip, string network) : base(id, name)
         {
             if (!Regex.IsMatch(ip, @"^(\d{1,3}\.){3}\d{1,3}$"))
@@ -19,6 +21,7 @@ namespace APBD_02.Models
             IPAddress = ip;
             NetworkName = network;
         }
+
         /// <summary>
         /// Try to connect to a network
         /// </summary>
