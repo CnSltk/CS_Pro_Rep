@@ -1,18 +1,15 @@
-﻿using System;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using APBD_02.Exceptions;
 
 namespace APBD_02.Models
 {
     public class EmbeddedDevice : Device
     {
-        public string IPAddress { get;  set; }
-        public string NetworkName { get;  set; }
-        public bool IsConnected { get;  set; }
+        public string IPAddress { get; set; }
+        public string NetworkName { get; set; }
+        public bool IsConnected { get; set; }
+        public EmbeddedDevice() { }
 
-
-        [JsonConstructor]
         public EmbeddedDevice(string id, string name, string ip, string network) : base(id, name)
         {
             if (!Regex.IsMatch(ip, @"^(\d{1,3}\.){3}\d{1,3}$"))
@@ -22,36 +19,31 @@ namespace APBD_02.Models
             NetworkName = network;
         }
 
-        /// <summary>
-        /// Try to connect to a network
-        /// </summary>
-        /// <exception cref="ConnectionException"></exception>
-
         public override void TurnOn()
         {
             Console.WriteLine($"Attempting to connect {Name} to network {NetworkName}...");
 
-            if (!NetworkName.Contains("MD Ltd."))
-                throw new ConnectionException();
+            if (string.IsNullOrEmpty(NetworkName))
+                throw new ConnectionException("Network name cannot be empty.");
 
             IsConnected = true;
             base.TurnOn();
-            
         }
-        /// <summary>
-        /// Turns off a EmbeddedDevice if its already turned on
-        /// </summary>
 
         public override void TurnOff()
         {
-            IsConnected = false;
+            if (IsConnected)
+            {
+                Console.WriteLine($"{Name} disconnected from network {NetworkName}.");
+                IsConnected = false;
+            }
+
             base.TurnOff();
         }
 
-
         public override string ToString()
         {
-            return base.ToString() + $", IP: {IPAddress}, Network: {NetworkName}, IsConnected: {IsConnected}";
+            return base.ToString() + $", IP: {IPAddress}, Network: {NetworkName}, Connected: {IsConnected}";
         }
     }
 }
