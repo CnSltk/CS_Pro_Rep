@@ -1,10 +1,9 @@
 using System.Text.Json;
-using APBD_02;
+using APBD_02.Services;
+using DeviceManager.Models.InterFaces;
 using DeviceManager.Models.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using WebApplication1.DTO;
-
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -12,33 +11,39 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Device API", Version = "v1" });
 });
-var manager = new APBD_02.DeviceManager("../DeviceManager.Logic/input.txt");
+var connectionString = builder.Configuration.GetConnectionString("DeviceManager");
+builder.Services.AddSingleton<IDeviceService,DeviceService>(deviceService => new DeviceService(connectionString));
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// GET /devices
-// Retrieve a list of all devices
-app.MapGet("/devices", () =>
+// GET all devices
+app.MapGet("/api/devices", (IDeviceService service) =>
 {
-    var devices = manager.GetAllDevices();
-    return Results.Ok(devices);
+    try
+    {
+        var devices = service.GetAllDevices();
+        return Results.Ok(devices);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
 });
 
-// GET /devices/{id}
-// Retrieve details of a device by its ID
-app.MapGet("/devices/{id}", (string id) =>
+// GET device by ID
+app.MapGet("/api/devices/{id}", (string id, IDeviceService service) =>
 {
-    var device = manager.GetDeviceById(id);
-    return device != null ? Results.Ok(device) : Results.NotFound();
+    var device = service.GetDeviceById(id);
+    return device is null ? Results.NotFound() : Results.Ok(device);
 });
 
-// POST /devices
-// Add a new device 
-app.MapPost("/devices", (DeviceDTO? dto) =>
+// POST new device
+app.MapPost("/api/devices", (DeviceDTO? dto, IDeviceService service) =>
 {
     if (dto == null)
         return Results.BadRequest("Request body is missing.");
+
     Device? device = dto.Type switch
     {
         "SW" => new Smartwatch
@@ -66,18 +71,17 @@ app.MapPost("/devices", (DeviceDTO? dto) =>
     if (device == null)
         return Results.BadRequest("Invalid device type.");
 
-    manager.AddDevice(device);
-    return Results.Created($"/devices/{device.Id}", device);
+    service.AddDevice(device);
+    return Results.Created($"/api/devices/{device.Id}", device);
 });
 
-// PUT /devices/{id}
-// Update the name of an existing device
-app.MapPut("/devices/{id}", (string id, DeviceDTO? dto) =>
+// PUT update device
+app.MapPut("/api/devices/{id}", (string id, DeviceDTO? dto, IDeviceService service) =>
 {
     if (dto == null)
         return Results.BadRequest("Request body is missing.");
 
-    var existing = manager.GetDeviceById(id);
+    var existing = service.GetDeviceById(id);
     if (existing == null)
         return Results.NotFound();
 
@@ -88,31 +92,28 @@ app.MapPut("/devices/{id}", (string id, DeviceDTO? dto) =>
             if (dto.BatteryPercentage != null)
                 sw.BatteryPercentage = dto.BatteryPercentage.Value;
             break;
-
         case "PC" when existing is PersonalComputer pc:
             pc.Name = dto.Name;
             pc.OperatingSystem = dto.OperatingSystem;
             break;
-
         case "ED" when existing is EmbeddedDevice ed:
             ed.Name = dto.Name;
             ed.IPAddress = dto.IPAddress;
             ed.NetworkName = dto.NetworkName;
             break;
-
         default:
             return Results.BadRequest("Invalid device type or type mismatch.");
     }
 
-    return Results.Ok(existing);
+    bool success = service.UpdateDevice(id, existing);
+    return success ? Results.Ok(existing) : Results.StatusCode(500);
 });
 
-// DELETE /devices/{id}
-// Delete a device by ID
-app.MapDelete("/devices/{id}", (string id) =>
+// DELETE device
+app.MapDelete("/api/devices/{id}", (string id, IDeviceService service) =>
 {
-    var success = manager.DeleteDevice(id);
-    return success ? Results.Ok($"Device {id} deleted.") : Results.NotFound();
+    bool deleted = service.DeleteDevice(id);
+    return deleted ? Results.Ok($"Device {id} deleted.") : Results.NotFound($"Device {id} not found.");
 });
 
 app.Run();
