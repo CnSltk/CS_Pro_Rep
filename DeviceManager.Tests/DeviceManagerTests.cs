@@ -1,7 +1,7 @@
 ﻿using Xunit;
-using APBD_02.Models;
-using APBD_02.Exceptions;
 using System.Collections.Generic;
+using DeviceManager.Models.Exceptions;
+using DeviceManager.Models.Models;
 
 namespace APBD_02.Tests
 {

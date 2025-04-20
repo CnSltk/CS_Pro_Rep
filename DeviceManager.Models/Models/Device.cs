@@ -1,4 +1,4 @@
-﻿namespace APBD_02.Models
+﻿namespace DeviceManager.Models.Models
 {
     public abstract class Device
     {

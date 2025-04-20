@@ -1,8 +1,6 @@
-﻿using System;
-using APBD_02.Models;
-using APBD_02.Exceptions;
+﻿using DeviceManager.Models.Models;
 
-namespace APBD_02.Services
+namespace APBD_02
 {
     /// <summary>
     /// Responsible for parsing device input lines and creating device objects.

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace APBD_02.Exceptions
+﻿namespace DeviceManager.Models.Exceptions
 {
     public class EmptySystemException : Exception
     {

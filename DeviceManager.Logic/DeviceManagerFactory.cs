@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using APBD_02.Models;
-using DeviceLibrary;
 
 namespace APBD_02
 {

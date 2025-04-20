@@ -1,10 +1,9 @@
 using System.Text.Json;
 using APBD_02;
-using APBD_02.Models;
-using APBD_02.Services;
-using DeviceLibrary;
+using DeviceManager.Models.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
+using WebApplication1.DTO;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,7 +12,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Device API", Version = "v1" });
 });
-var manager = new DeviceManager("../DeviceManager.Logic/input.txt");
+var manager = new APBD_02.DeviceManager("../DeviceManager.Logic/input.txt");
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -40,7 +39,7 @@ app.MapPost("/devices", (DeviceDTO? dto) =>
 {
     if (dto == null)
         return Results.BadRequest("Request body is missing.");
-    Device device = dto.Type switch
+    Device? device = dto.Type switch
     {
         "SW" => new Smartwatch
         {

@@ -1,4 +1,4 @@
-﻿namespace APBD_02.InterFaces;
+﻿namespace DeviceManager.Models.InterFaces;
 /// <summary>
 /// Notifies low battery for device
 /// </summary>

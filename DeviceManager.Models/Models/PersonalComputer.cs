@@ -1,6 +1,6 @@
-﻿using APBD_02.Exceptions;
+﻿using DeviceManager.Models.Exceptions;
 
-namespace APBD_02.Models
+namespace DeviceManager.Models.Models
 {
     public class PersonalComputer : Device
     {

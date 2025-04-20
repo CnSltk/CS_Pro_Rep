@@ -1,7 +1,6 @@
-﻿using APBD_02;
-using APBD_02.Models;
+﻿using DeviceManager.Models.Models;
 
-namespace DeviceLibrary;
+namespace APBD_02;
 
 public class DeviceManager
 {
@@ -22,7 +21,7 @@ public class DeviceManager
         return _devices.FirstOrDefault(d => d.Id == id);
     }
 
-    public void AddDevice(Device device)
+    public void AddDevice(Device? device)
     {
        // if (_devices.Any(d => d.Id == device.Id)) return;
         //_devices.Add(device);

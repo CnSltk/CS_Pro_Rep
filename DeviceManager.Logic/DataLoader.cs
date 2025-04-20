@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using APBD_02.Models;
-using APBD_02.Services;
+using DeviceManager.Models.Models;
 
 namespace APBD_02
 {

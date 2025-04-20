@@ -1,4 +1,6 @@
-﻿public class DeviceDTO
+﻿namespace WebApplication1.DTO;
+
+public class DeviceDTO
 {
     public string Type { get; set; } 
     public string Id { get; set; }

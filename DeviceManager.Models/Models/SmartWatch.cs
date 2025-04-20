@@ -1,5 +1,6 @@
-﻿using APBD_02.Exceptions;
-using APBD_02.Models;
+﻿using DeviceManager.Models.Exceptions;
+
+namespace DeviceManager.Models.Models;
 
 public class Smartwatch : Device
 {
