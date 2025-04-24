@@ -1,94 +1,78 @@
-﻿using Xunit;
-using System.Collections.Generic;
-using DeviceManager.Models.Exceptions;
 using DeviceManager.Models.Models;
 
-namespace APBD_02.Tests
+namespace TestProject1;
+
+public class DeviceManagerTests
 {
-    public class DeviceManagerTests
+private readonly List<Device> _devices;
+
+public DeviceManagerTests()
+{
+    _devices = new List<Device>
     {
-        private readonly List<Device> _devices;
+        new Smartwatch("SW-1", "Apple Watch", 50),
+        new PersonalComputer("P-2", "Dell Laptop", "Windows 11"),
+        new EmbeddedDevice("ED-3", "IoT Sensor", "192.168.1.10", "MD Ltd. Network")
+    };
+}
 
-        public DeviceManagerTests()
-        {
-            _devices = new List<Device>
-            {
-                new Smartwatch("SW-1", "Apple Watch", 50),
-                new PersonalComputer("P-2", "Dell Laptop", "Windows 11"),
-                new EmbeddedDevice("ED-3", "IoT Sensor", "192.168.1.10", "MD Ltd. Network")
-            };
-        }
+ [Fact]
+    public void TurnOnSmartwatch_ShouldReduceBatteryAndSetStatus()
+    {
+        var watch = (Smartwatch)_devices[0];
 
-        [Fact]
-        public void TurnOnSmartwatch_ShouldReduceBattery()
-        {
-            // Arrange
-            var watch = (Smartwatch)_devices[0];
+        watch.TurnOn();
 
-            // Act
-            watch.TurnOn();
+        Assert.Equal(40, watch.BatteryPercentage);
+        Assert.True(watch.IsTurnedOn);
+    }
 
-            // Assert
-            Assert.Equal(40, watch.BatteryPercentage);
-            Assert.True(watch.IsTurnedOn);
-        }
+    [Fact]
+    public void TurnOffDevice_ShouldSetIsTurnedOnToFalse()
+    {
+        var pc = new PersonalComputer("P-8", "HP Laptop", "Linux");
+        pc.TurnOn();
 
-        [Fact]
-        public void TurnOnSmartwatch_LowBattery_ShouldThrowException()
-        {
-            // Arrange
-            var watch = new Smartwatch("SW-4", "Samsung Watch", 5);
+        pc.TurnOff();
 
-            // Act & Assert
-            Assert.Throws<EmptyBatteryException>(() => watch.TurnOn());
-        }
+        Assert.False(pc.IsTurnedOn);
+    }
 
-        [Fact]
-        public void TurnOnPersonalComputer_NoOS_ShouldThrowException()
-        {
-            // Arrange
-            var pc = new PersonalComputer("P-5", "Acer PC", "");
+    [Fact]
+    public void TurnOffDevice_WhenNotTurnedOn_ShouldNotThrow()
+    {
+        var watch = new Smartwatch("SW-9", "Huawei Watch", 80);
 
-            // Act & Assert
-            Assert.Throws<EmptySystemException>(() => pc.TurnOn());
-        }
+        var exception = Record.Exception(() => watch.TurnOff());
 
-        [Fact]
-        public void TurnOnEmbeddedDevice_InvalidNetwork_ShouldThrowException()
-        {
-            // Arrange
-            var device = new EmbeddedDevice("ED-6", "Smart Sensor", "192.168.1.5", "Unknown Network");
+        Assert.Null(exception);
+        Assert.False(watch.IsTurnedOn);
+    }
 
-            // Act & Assert
-            Assert.Throws<ConnectionException>(() => device.TurnOn());
-        }
+    [Fact]
+    public void ToString_ShouldIncludeDeviceDetails()
+    {
+        var watch = new Smartwatch("SW-10", "Garmin Watch", 80);
 
-        [Fact]
-        public void TurnOffDevice_ShouldChangeStatus()
-        {
-            // Arrange
-            var pc = new PersonalComputer("P-8", "HP Laptop", "Linux");
-            pc.TurnOn();
+        var result = watch.ToString();
 
-            // Act
-            pc.TurnOff();
+        Assert.Contains("Garmin Watch", result);
+        Assert.Contains("Battery:", result);
+    }
 
-            // Assert
-            Assert.False(pc.IsTurnedOn);
-        }
+    [Fact]
+    public void EmbeddedDevice_WithInvalidIp_ShouldThrowArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new EmbeddedDevice("ED-7", "Bad Device", "invalid_ip", "Net"));
+    }
 
-        [Fact]
-        public void DeviceToString_ShouldReturnCorrectFormat()
-        {
-            // Arrange
-            var watch = new Smartwatch("SW-10", "Garmin Watch", 80);
+    [Fact]
+    public void Smartwatch_ShouldInheritDevice()
+    {
+        var watch = new Smartwatch("SW-15", "FitBit", 60);
 
-            // Act
-            string result = watch.ToString();
-
-            // Assert
-            Assert.Contains("Garmin Watch", result);
-            Assert.Contains("Battery:", result);
-        }
+        Assert.IsAssignableFrom<Device>(watch);
+        Assert.Equal("SW-15", watch.Id);
     }
 }

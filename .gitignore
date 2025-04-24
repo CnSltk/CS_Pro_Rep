@@ -4,5 +4,6 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 
-# Ignore all appsettings files
-appsettings.*
+# Ignore appsettings files
+**/appsettings*.json
+

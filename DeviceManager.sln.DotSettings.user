@@ -2,6 +2,6 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ASqlConnection_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FAppData_003FRoaming_003FJetBrains_003FRider2024_002E3_003Fresharper_002Dhost_003FSourcesCache_003Fd7cf089f69b25dae34ffd94b3c291959234e50142337fc6a9e2b72efdf84f1_003FSqlConnection_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=819b9a3a_002De84f_002D4f1a_002Dadbd_002D53122cf96aff/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="DeviceManagerTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::1F0601F2-8072-479B-8227-3A8672E53A51::net8.0::APBD_02.Tests.DeviceManagerTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::9874CBE3-7F57-40FD-80DA-18187F68573A::net8.0::TestProject1.DeviceManagerTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
