@@ -1,0 +1,5 @@
+ID: SW-1, Name: Apple Watch SE2, Status: On, Battery: 17%
+ID: P-1, Name: LinuxPC, Status: Off, OS: Linux Mint
+ID: P-2, Name: ThinkPad T440, Status: Off, OS: Unknown OS
+ID: ED-1, Name: Pi3, Status: Off, IP: 192.168.1.44, Network: MD Ltd.Wifi-1, IsConnected: False
+ID: ED-2, Name: Pi4, Status: Off, IP: 192.168.1.45, Network: eduroam, IsConnected: False
