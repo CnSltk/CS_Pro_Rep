@@ -69,36 +69,22 @@ public IEnumerable<Device> GetAllDevices()
     return devices;
 }
 
-
-
 public Device? GetDeviceById(string id)
 {
     using var conn = new SqlConnection(_connectionString);
     conn.Open();
 
     var cmd = new SqlCommand(@"
-    SELECT d.Id, d.Name, d.IsEnabled, 
-           'SW' AS Type, s.BatteryPercentage, NULL AS OperatingSystem, NULL AS IPAddress, NULL AS NetworkName
-    FROM Devices d
-    LEFT JOIN Smartwatch s ON s.DeviceId = d.Id
-    WHERE s.DeviceId IS NOT NULL
-
-    UNION
-
-    SELECT d.Id, d.Name, d.IsEnabled, 
-           'PC' AS Type, NULL AS BatteryPercentage, pc.OperationSystem, NULL AS IPAddress, NULL AS NetworkName
-    FROM Devices d
-    LEFT JOIN PersonalComputer pc ON pc.DeviceId = d.Id
-    WHERE pc.DeviceId IS NOT NULL
-
-    UNION
-
-    SELECT d.Id, d.Name, d.IsEnabled, 
-           'ED' AS Type, NULL AS BatteryPercentage, NULL AS OperatingSystem, e.IpAddress, e.NetworkName
-    FROM Devices d
-    LEFT JOIN Embedded e ON e.DeviceId = d.Id
-    WHERE e.DeviceId IS NOT NULL
-", conn);
+        SELECT d.Id, d.Name, d.IsEnabled, d.Type,
+               s.BatteryPercentage,
+               pc.OperationSystem,
+               e.IPAddress, e.NetworkName
+        FROM Devices d
+        LEFT JOIN Smartwatch s ON d.Id = s.DeviceId
+        LEFT JOIN PersonalComputer pc ON d.Id = pc.DeviceId
+        LEFT JOIN Embedded e ON d.Id = e.DeviceId
+        WHERE d.Id = @Id
+    ", conn);
 
     cmd.Parameters.AddWithValue("@Id", id);
 
@@ -107,23 +93,24 @@ public Device? GetDeviceById(string id)
     if (reader.Read())
     {
         var type = reader["Type"]?.ToString();
+
         return type switch
         {
             "SW" => new Smartwatch(
                 reader["Id"].ToString()!,
                 reader["Name"].ToString()!,
-                Convert.ToInt32(reader["BatteryPercentage"])
+                reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) ? 0 : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
             ),
             "PC" => new PersonalComputer(
                 reader["Id"].ToString()!,
                 reader["Name"].ToString()!,
-                reader["OperatingSystem"]?.ToString() ?? ""
+                reader["OperationSystem"]?.ToString() ?? ""
             ),
             "ED" => new EmbeddedDevice(
                 reader["Id"].ToString()!,
                 reader["Name"].ToString()!,
-                reader.IsDBNull(reader.GetOrdinal("IPAddress")) ? "" : reader["IPAddress"].ToString()!,
-                reader.IsDBNull(reader.GetOrdinal("NetworkName")) ? "" : reader["NetworkName"].ToString()!
+                reader["IPAddress"]?.ToString() ?? "",
+                reader["NetworkName"]?.ToString() ?? ""
             ),
             _ => null
         };
@@ -131,6 +118,7 @@ public Device? GetDeviceById(string id)
 
     return null;
 }
+
 
 public void AddDevice(Device device)
 {
@@ -140,7 +128,7 @@ public void AddDevice(Device device)
     conn.Open();
     
     var cmd = new SqlCommand(
-        "INSERT INTO Devices (Id, Name, IsEnabled) VALUES (@Id, @Name, @IsEnabled)", conn);
+        "INSERT INTO Devices (Id, Name, IsEnabled,Type) VALUES (@Id, @Name, @IsEnabled,@Type)", conn);
 
     cmd.Parameters.AddWithValue("@Id", device.Id);
     cmd.Parameters.AddWithValue("@Name", device.Name);
@@ -194,36 +182,52 @@ public bool UpdateDevice(string id, Device updated)
     using var conn = new SqlConnection(_connectionString);
     conn.Open();
 
-    var cmd = new SqlCommand("UPDATE Devices SET Name = @Name WHERE Id = @Id", conn);
-    cmd.Parameters.AddWithValue("@Id", id);
-    cmd.Parameters.AddWithValue("@Name", updated.Name);
-    cmd.ExecuteNonQuery();
+    var transaction = conn.BeginTransaction();
 
-    if (updated is Smartwatch sw)
+    try
     {
-        var updateCmd = new SqlCommand("UPDATE Smartwatch SET BatteryPercentage = @Battery WHERE DeviceId = @Id", conn);
-        updateCmd.Parameters.AddWithValue("@Battery", sw.BatteryPercentage);
-        updateCmd.Parameters.AddWithValue("@Id", id);
-        return updateCmd.ExecuteNonQuery() > 0;
-    }
-    else if (updated is PersonalComputer pc)
-    {
-        var updateCmd = new SqlCommand("UPDATE PersonalComputer SET OperationSystem = @OS WHERE DeviceId = @Id", conn);
-        updateCmd.Parameters.AddWithValue("@OS", pc.OperatingSystem);
-        updateCmd.Parameters.AddWithValue("@Id", id);
-        return updateCmd.ExecuteNonQuery() > 0;
-    }
-    else if (updated is EmbeddedDevice ed)
-    {
-        var updateCmd = new SqlCommand("UPDATE Embedded SET IpAddress = @IP, NetworkName = @Network WHERE DeviceId = @Id", conn);
-        updateCmd.Parameters.AddWithValue("@IP", ed.IPAddress);
-        updateCmd.Parameters.AddWithValue("@Network", ed.NetworkName);
-        updateCmd.Parameters.AddWithValue("@Id", id);
-        return updateCmd.ExecuteNonQuery() > 0;
-    }
+        var cmd = new SqlCommand("UPDATE Devices SET Name = @Name WHERE Id = @Id", conn, transaction);
+        cmd.Parameters.AddWithValue("@Name", updated.Name);
+        cmd.Parameters.AddWithValue("@Id", id);
+        cmd.ExecuteNonQuery();
 
-    return false;
+        if (updated is Smartwatch sw)
+        {
+            var updateCmd = new SqlCommand("UPDATE Smartwatch SET BatteryPercentage = @Battery WHERE DeviceId = @Id", conn, transaction);
+            updateCmd.Parameters.AddWithValue("@Battery", sw.BatteryPercentage);
+            updateCmd.Parameters.AddWithValue("@Id", id);
+            updateCmd.ExecuteNonQuery();
+        }
+        else if (updated is PersonalComputer pc)
+        {
+            var updateCmd = new SqlCommand("UPDATE PersonalComputer SET OperationSystem = @OS WHERE DeviceId = @Id", conn, transaction);
+            updateCmd.Parameters.AddWithValue("@OS", pc.OperatingSystem ?? (object)DBNull.Value);
+            updateCmd.Parameters.AddWithValue("@Id", id);
+            updateCmd.ExecuteNonQuery();
+        }
+        else if (updated is EmbeddedDevice ed)
+        {
+            var updateCmd = new SqlCommand("UPDATE Embedded SET IpAddress = @IP, NetworkName = @Network WHERE DeviceId = @Id", conn, transaction);
+            updateCmd.Parameters.AddWithValue("@IP", ed.IPAddress ?? (object)DBNull.Value);
+            updateCmd.Parameters.AddWithValue("@Network", ed.NetworkName ?? (object)DBNull.Value);
+            updateCmd.Parameters.AddWithValue("@Id", id);
+            updateCmd.ExecuteNonQuery();
+        }
+        else
+        {
+            throw new ArgumentException("Unknown device type");
+        }
+
+        transaction.Commit();
+        return true;
+    }
+    catch
+    {
+        transaction.Rollback();
+        throw;
+    }
 }
+
 
 
 public bool DeleteDevice(string id)
