@@ -282,14 +282,21 @@ private void ValidateDevice(Device device)
 
     switch (device)
     {
-        case Smartwatch sw when sw.BatteryPercentage < 0 || sw.BatteryPercentage > 100:
-            throw new ArgumentException("Battery percentage must be between 0 and 100.");
-
-        case EmbeddedDevice ed when string.IsNullOrWhiteSpace(ed.IPAddress) || !IPAddress.TryParse(ed.IPAddress, out _):
-           throw new ArgumentException("Invalid or missing IP address format.");
-        
-        case EmbeddedDevice ed2 when string.IsNullOrWhiteSpace(ed2.NetworkName):
-            throw new ArgumentException("Network name must be provided for embedded devices.");
+        case Smartwatch sw:
+            if (sw.BatteryPercentage < 0 || sw.BatteryPercentage > 100)
+                throw new ArgumentException("Battery percentage must be between 0 and 100.");
+            if(sw.Name.Length > 15)
+                throw new ArgumentException("Name shouldn't be more than 15 characters.");
+            break;
+        case EmbeddedDevice ed:
+            if (string.IsNullOrWhiteSpace(ed.IPAddress))
+                throw new ArgumentException("IP address must be provided.");
+            
+            if (string.IsNullOrWhiteSpace(ed.NetworkName))
+                throw new ArgumentException("Network name must be provided.");
+            if (ed.NetworkName.Length > 50)
+                throw new ArgumentException("Network name cannot exceed 50 characters.");
+            break;
 
         case PersonalComputer pc when string.IsNullOrWhiteSpace(pc.OperatingSystem):
             throw new ArgumentException("Operating system must be specified for personal computers.");
