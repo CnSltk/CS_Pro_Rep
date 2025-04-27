@@ -7,3 +7,7 @@ riderModule.iml
 # Ignore appsettings files
 **/appsettings*.json
 
+.idea/
+*.user
+*.suo
+*.vs/

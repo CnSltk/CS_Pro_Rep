@@ -11,8 +11,9 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Device API", Version = "v1" });
 });
 
-var connectionString = builder.Configuration.GetConnectionString("DeviceManager");
-builder.Services.AddSingleton<IDeviceService, DeviceService>(service => new DeviceService(connectionString));
+var connectionString = builder.Configuration.GetConnectionString("DeviceManager") 
+                       ?? throw new InvalidOperationException("Connection string 'DeviceManager' not found.");
+builder.Services.AddSingleton<IDeviceService>(_ => new DeviceService(connectionString));
 
 var app = builder.Build();
 app.UseSwagger();
@@ -39,7 +40,7 @@ app.MapGet("/api/devices/{id}", (string id, IDeviceService service) =>
     return device is null ? Results.NotFound() : Results.Ok(device);
 });
 
-//POST METHOD FOR ADDING DEVİCE
+// POST new device
 app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) =>
 {
     string? contentType = request.ContentType?.ToLower();
@@ -52,6 +53,7 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
     rawBody = await reader.ReadToEndAsync();
 
     Device? device = null;
+    string generatedId = Guid.NewGuid().ToString(); 
 
     if (contentType == "application/json")
     {
@@ -59,13 +61,10 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
         if (json == null) return Results.BadRequest("Invalid JSON.");
 
         var type = json["Type"]?.ToString();
-        var id = json["Id"]?.ToString();
         var name = json["Name"]?.ToString();
-        var isEnabled = json["IsEnabled"]?.GetValue<bool>() ?? false;
 
-        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(name))
-            return Results.BadRequest("Id and Name are required.");
-
+        if (string.IsNullOrWhiteSpace(name))
+            return Results.BadRequest("Name is required.");
         switch (type)
         {
             case "SW":
@@ -74,23 +73,22 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
                     return Results.BadRequest("BatteryPercentage must be between 0-100.");
                 device = new Smartwatch
                 {
-                    Id = id,
+                    Id = generatedId,
                     Name = name,
                     BatteryPercentage = battery
                 };
                 break;
-
             case "PC":
-                if (isEnabled && string.IsNullOrWhiteSpace(json["OperatingSystem"]?.ToString()))
-                    return Results.BadRequest("OperatingSystem is required if device is enabled.");
+                var os = json["OperatingSystem"]?.ToString();
+                if (string.IsNullOrWhiteSpace(os))
+                    return Results.BadRequest("OperatingSystem is required for PC.");
                 device = new PersonalComputer
                 {
-                    Id = id,
+                    Id = generatedId,
                     Name = name,
-                    OperatingSystem = json["OperatingSystem"]?.ToString()
+                    OperatingSystem = os
                 };
                 break;
-
             case "ED":
                 var ip = json["IPAddress"]?.ToString();
                 var net = json["NetworkName"]?.ToString();
@@ -98,13 +96,12 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
                     return Results.BadRequest("IPAddress and NetworkName are required for ED.");
                 device = new EmbeddedDevice
                 {
-                    Id = id,
+                    Id = generatedId,
                     Name = name,
                     IPAddress = ip,
                     NetworkName = net
                 };
                 break;
-
             default:
                 return Results.BadRequest("Invalid Type.");
         }
@@ -114,12 +111,10 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
         var parts = rawBody.Split(',');
         if (parts.Length < 3)
             return Results.BadRequest("Invalid text format.");
-
-        var id = parts[0];
         var name = parts[1];
-        var prefix = id.Substring(0, 2);
+        var prefix = parts[0].Substring(0, 2);
 
-        switch (prefix)
+        switch (prefix) 
         {
             case "SW":
                 if (parts.Length != 4)
@@ -128,39 +123,35 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
                     return Results.BadRequest("Invalid battery percentage.");
                 device = new Smartwatch
                 {
-                    Id = id,
+                    Id = generatedId,
                     Name = name,
                     BatteryPercentage = bp
                 };
                 break;
-
             case "PC":
                 device = new PersonalComputer
                 {
-                    Id = id,
+                    Id = generatedId,
                     Name = name,
-                    OperatingSystem = parts.Length >= 4 ? parts[3] : null
+                    OperatingSystem = parts.Length >= 4 ? parts[3] : "",
                 };
                 break;
-
             case "ED":
                 if (parts.Length != 4)
                     return Results.BadRequest("Embedded requires 4 fields.");
                 device = new EmbeddedDevice
                 {
-                    Id = id,
+                    Id = generatedId,
                     Name = name,
                     IPAddress = parts[2],
                     NetworkName = parts[3]
                 };
                 break;
-
             default:
-                return Results.BadRequest("Invalid device type prefix.");
+                return Results.BadRequest("Invalid device type prefix."); 
         }
     }
-    else
-    {
+    else {
         return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
     }
 
@@ -170,9 +161,7 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
 .Accepts<string>("application/json", ["text/plain"]);
 
 
-
-
-// PUT update device
+//PUT Update a Device by ID
 app.MapPut("/api/devices/{id}", (string id, DeviceDTO dto, IDeviceService service) =>
 {
     var existing = service.GetDeviceById(id);
@@ -182,6 +171,18 @@ app.MapPut("/api/devices/{id}", (string id, DeviceDTO dto, IDeviceService servic
     if (string.IsNullOrWhiteSpace(dto.Name))
         return Results.BadRequest("Name is required.");
 
+    if (string.IsNullOrWhiteSpace(dto.Type))
+        return Results.BadRequest("Type is required.");
+    var expectedTypeName = dto.Type switch 
+    { 
+        "SW" => "Smartwatch", 
+        "PC" => "PersonalComputer", 
+        "ED" => "EmbeddedDevice", 
+        _ => null 
+    };
+    
+    if (existing.GetType().Name != expectedTypeName)
+        return Results.BadRequest("Device type mismatch.");
     switch (dto.Type)
     {
         case "SW" when existing is Smartwatch sw:
@@ -213,7 +214,6 @@ app.MapPut("/api/devices/{id}", (string id, DeviceDTO dto, IDeviceService servic
     bool updated = service.UpdateDevice(id, existing);
     return updated ? Results.Ok(existing) : Results.StatusCode(500);
 });
-
 
 // DELETE device
 app.MapDelete("/api/devices/{id}", (string id, IDeviceService service) =>

@@ -21,53 +21,61 @@ public IEnumerable<Device> GetAllDevices()
     conn.Open();
 
     var cmd = new SqlCommand(@"
-  SELECT
-    d.Id,
-    d.Name,
-    d.IsEnabled,
-    d.Type,
-    s.BatteryPercentage,
-    pc.OperationSystem,
-    e.IPAddress,
-    e.NetworkName
-  FROM Devices d
-  LEFT JOIN Smartwatch s         ON s.DeviceId = d.Id
-  LEFT JOIN PersonalComputer pc  ON pc.DeviceId = d.Id
-  LEFT JOIN Embedded e           ON e.DeviceId = d.Id
-", conn);
+        SELECT
+            d.Id,
+            d.Name,
+            d.Type,
+            e.IpAddress,
+            e.NetworkName,
+            pc.OperationSystem,
+            sw.BatteryPercentage
+        FROM Devices d
+        LEFT JOIN Embedded e ON d.Id = e.DeviceId
+        LEFT JOIN PersonalComputer pc ON d.Id = pc.DeviceId
+        LEFT JOIN Smartwatch sw ON d.Id = sw.DeviceId
+    ", conn);
 
     using var reader = cmd.ExecuteReader();
     while (reader.Read())
     {
-        var type = reader["Type"]?.ToString();
+        var type = reader["Type"].ToString();
+        if (type == "ED")
+        {
+            var ip = reader["IpAddress"] is DBNull ? "" : reader["IpAddress"].ToString();
+            if (!string.IsNullOrEmpty(ip) && !IPAddress.TryParse(ip, out _))
+            {
+                throw new Exception($"Invalid IP address format for device {reader["Id"]}");
+            }
+        }
+
         Device? device = type switch
         {
             "SW" => new Smartwatch(
                 reader["Id"].ToString()!,
                 reader["Name"].ToString()!,
-                reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
+                reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) ? 0 : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
             ),
             "PC" => new PersonalComputer(
-                reader["Id"].ToString()!,
-                reader["Name"].ToString()!,
-                reader["OperationSystem"].ToString()!
+                id: reader["Id"].ToString()!,
+                name: reader["Name"].ToString()!,
+                os: reader["OperationSystem"] is DBNull ? "" : reader["OperationSystem"].ToString()!
             ),
             "ED" => new EmbeddedDevice(
-                reader["Id"].ToString()!,
-                reader["Name"].ToString()!,
-                reader["IPAddress"].ToString()!,
-                reader["NetworkName"].ToString()!
+                id: reader["Id"].ToString()!,
+                name: reader["Name"].ToString()!,
+                ip: reader["IpAddress"] is DBNull ? "" : reader["IpAddress"].ToString()!,
+                network: reader["NetworkName"] is DBNull ? "" : reader["NetworkName"].ToString()!
             ),
-            _    => null
+            _ => null
         };
 
         if (device != null)
             devices.Add(device);
     }
 
-
     return devices;
 }
+
 
 public Device? GetDeviceById(string id)
 {
@@ -92,7 +100,7 @@ public Device? GetDeviceById(string id)
 
     if (reader.Read())
     {
-        var type = reader["Type"]?.ToString();
+        var type = reader["Type"].ToString();
 
         return type switch
         {
@@ -102,15 +110,15 @@ public Device? GetDeviceById(string id)
                 reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) ? 0 : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
             ),
             "PC" => new PersonalComputer(
-                reader["Id"].ToString()!,
-                reader["Name"].ToString()!,
-                reader["OperationSystem"]?.ToString() ?? ""
+                id: reader["Id"].ToString()!,
+                name: reader["Name"].ToString()!,
+                os: reader.IsDBNull(reader.GetOrdinal("OperationSystem")) ? "" : reader["OperationSystem"].ToString()!
             ),
             "ED" => new EmbeddedDevice(
-                reader["Id"].ToString()!,
-                reader["Name"].ToString()!,
-                reader["IPAddress"]?.ToString() ?? "",
-                reader["NetworkName"]?.ToString() ?? ""
+                id: reader["Id"].ToString()!,
+                name: reader["Name"].ToString()!,
+                ip: reader.IsDBNull(reader.GetOrdinal("IPAddress")) ? "" : reader["IPAddress"].ToString()!,
+                network: reader.IsDBNull(reader.GetOrdinal("NetworkName")) ? "" : reader["NetworkName"].ToString()!
             ),
             _ => null
         };
@@ -119,20 +127,13 @@ public Device? GetDeviceById(string id)
     return null;
 }
 
-
 public void AddDevice(Device device)
 {
     ValidateDevice(device);
 
     using var conn = new SqlConnection(_connectionString);
     conn.Open();
-    
-    var cmd = new SqlCommand(
-        "INSERT INTO Devices (Id, Name, IsEnabled,Type) VALUES (@Id, @Name, @IsEnabled,@Type)", conn);
 
-    cmd.Parameters.AddWithValue("@Id", device.Id);
-    cmd.Parameters.AddWithValue("@Name", device.Name);
-    cmd.Parameters.AddWithValue("@IsEnabled", true);
     string type = device switch
     {
         Smartwatch => "SW",
@@ -140,6 +141,31 @@ public void AddDevice(Device device)
         EmbeddedDevice => "ED",
         _ => throw new ArgumentException("Unknown device type")
     };
+    string deviceId = null;
+    for (int num = 1; num <= 2000; num++)
+    {
+        string potentialId = $"{type}-{num}";
+        
+        var checkCmd = new SqlCommand("SELECT COUNT(1) FROM Devices WHERE Id = @Id", conn);
+        checkCmd.Parameters.AddWithValue("@Id", potentialId);
+        int exists = (int)checkCmd.ExecuteScalar();
+
+        if (exists == 0)
+        {
+            deviceId = potentialId;
+            break;
+        }
+    }
+
+    if (deviceId == null)
+        throw new InvalidOperationException($"No available ID found for device type {type} (all 2000 IDs may be in use)");
+    device.Id = deviceId;
+    var cmd = new SqlCommand(
+        "INSERT INTO Devices (Id, Name, IsEnabled, Type) VALUES (@Id, @Name, @IsEnabled, @Type)", conn);
+
+    cmd.Parameters.AddWithValue("@Id", device.Id);
+    cmd.Parameters.AddWithValue("@Name", device.Name);
+    cmd.Parameters.AddWithValue("@IsEnabled", true);
     cmd.Parameters.AddWithValue("@Type", type);
 
     cmd.ExecuteNonQuery();
@@ -156,7 +182,7 @@ public void AddDevice(Device device)
     {
         var cmd2 = new SqlCommand(
             "INSERT INTO PersonalComputer (OperationSystem, DeviceId) VALUES (@OS, @Id)", conn);
-        cmd2.Parameters.AddWithValue("@OS", pc.OperatingSystem ?? (object)DBNull.Value);
+        cmd2.Parameters.AddWithValue("@OS", string.IsNullOrWhiteSpace(pc.OperatingSystem) ? DBNull.Value : pc.OperatingSystem);
         cmd2.Parameters.AddWithValue("@Id", device.Id);
         cmd2.ExecuteNonQuery();
     }
@@ -164,19 +190,21 @@ public void AddDevice(Device device)
     {
         var cmd2 = new SqlCommand(
             "INSERT INTO Embedded (IpAddress, NetworkName, DeviceId) VALUES (@IP, @Network, @Id)", conn);
-        cmd2.Parameters.AddWithValue("@IP", ed.IPAddress);
-        cmd2.Parameters.AddWithValue("@Network", ed.NetworkName);
+        cmd2.Parameters.AddWithValue("@IP", string.IsNullOrWhiteSpace(ed.IPAddress) ? DBNull.Value : ed.IPAddress);
+        cmd2.Parameters.AddWithValue("@Network", string.IsNullOrWhiteSpace(ed.NetworkName) ? DBNull.Value : ed.NetworkName);
         cmd2.Parameters.AddWithValue("@Id", device.Id);
         cmd2.ExecuteNonQuery();
     }
-    else
-    {
-        throw new ArgumentException("Unknown device type");
-    }
 }
-
 public bool UpdateDevice(string id, Device updated)
 {
+    var existing = GetDeviceById(id);
+    if (existing == null)
+        throw new Exception("Device not found");
+
+    if (existing.GetType() != updated.GetType())
+        throw new Exception("Device type mismatch");
+
     ValidateDevice(updated);
 
     using var conn = new SqlConnection(_connectionString);
@@ -201,21 +229,17 @@ public bool UpdateDevice(string id, Device updated)
         else if (updated is PersonalComputer pc)
         {
             var updateCmd = new SqlCommand("UPDATE PersonalComputer SET OperationSystem = @OS WHERE DeviceId = @Id", conn, transaction);
-            updateCmd.Parameters.AddWithValue("@OS", pc.OperatingSystem ?? (object)DBNull.Value);
+            updateCmd.Parameters.AddWithValue("@OS", string.IsNullOrEmpty(pc.OperatingSystem) ? DBNull.Value : pc.OperatingSystem);
             updateCmd.Parameters.AddWithValue("@Id", id);
             updateCmd.ExecuteNonQuery();
         }
         else if (updated is EmbeddedDevice ed)
         {
             var updateCmd = new SqlCommand("UPDATE Embedded SET IpAddress = @IP, NetworkName = @Network WHERE DeviceId = @Id", conn, transaction);
-            updateCmd.Parameters.AddWithValue("@IP", ed.IPAddress ?? (object)DBNull.Value);
-            updateCmd.Parameters.AddWithValue("@Network", ed.NetworkName ?? (object)DBNull.Value);
+            updateCmd.Parameters.AddWithValue("@IP", string.IsNullOrEmpty(ed.IPAddress) ? DBNull.Value : ed.IPAddress);
+            updateCmd.Parameters.AddWithValue("@Network", string.IsNullOrEmpty(ed.NetworkName) ? DBNull.Value : ed.NetworkName);
             updateCmd.Parameters.AddWithValue("@Id", id);
             updateCmd.ExecuteNonQuery();
-        }
-        else
-        {
-            throw new ArgumentException("Unknown device type");
         }
 
         transaction.Commit();
@@ -227,8 +251,6 @@ public bool UpdateDevice(string id, Device updated)
         throw;
     }
 }
-
-
 
 public bool DeleteDevice(string id)
 {
@@ -253,11 +275,10 @@ public bool DeleteDevice(string id)
     return cmd.ExecuteNonQuery() > 0;
 }
 
-
 private void ValidateDevice(Device device)
 {
-    if (string.IsNullOrWhiteSpace(device.Id) || string.IsNullOrWhiteSpace(device.Name))
-        throw new ArgumentException("Device ID and Name must be provided.");
+    if (string.IsNullOrWhiteSpace(device.Name))
+        throw new ArgumentException("Device Name must be provided.");
 
     switch (device)
     {
@@ -265,7 +286,7 @@ private void ValidateDevice(Device device)
             throw new ArgumentException("Battery percentage must be between 0 and 100.");
 
         case EmbeddedDevice ed when string.IsNullOrWhiteSpace(ed.IPAddress) || !IPAddress.TryParse(ed.IPAddress, out _):
-            throw new ArgumentException("Invalid or missing IP address format.");
+           throw new ArgumentException("Invalid or missing IP address format.");
         
         case EmbeddedDevice ed2 when string.IsNullOrWhiteSpace(ed2.NetworkName):
             throw new ArgumentException("Network name must be provided for embedded devices.");
