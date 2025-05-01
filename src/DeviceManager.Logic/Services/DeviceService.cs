@@ -38,41 +38,41 @@ public IEnumerable<Device> GetAllDevices()
     using var reader = cmd.ExecuteReader();
     while (reader.Read())
     {
-        var type = reader["Type"].ToString();
-        if (type == "ED")
-        {
-            var ip = reader["IpAddress"] is DBNull ? "" : reader["IpAddress"].ToString();
-            if (!string.IsNullOrEmpty(ip) && !IPAddress.TryParse(ip, out _))
-            {
-                throw new Exception($"Invalid IP address format for device {reader["Id"]}");
-            }
-        }
+        var type = reader["Type"]?.ToString() ?? throw new InvalidOperationException("Device type is null");
+        var id = reader["Id"]?.ToString() ?? throw new InvalidOperationException($"Device ID is null for type {type}");
+        var name = reader["Name"]?.ToString() ?? throw new InvalidOperationException($"Device name is null for ID {id}");
 
         Device? device = type switch
         {
             "SW" => new Smartwatch(
-                reader["Id"].ToString()!,
-                reader["Name"].ToString()!,
-                reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) ? 0 : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
+                id,
+                name,
+                reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) 
+                    ? 0 
+                    : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
             ),
             "PC" => new PersonalComputer(
-                id: reader["Id"].ToString()!,
-                name: reader["Name"].ToString()!,
-                os: reader["OperationSystem"] is DBNull ? "" : reader["OperationSystem"].ToString()!
+                id,
+                name,
+                reader.IsDBNull(reader.GetOrdinal("OperationSystem")) 
+                    ? "" 
+                    : reader["OperationSystem"]?.ToString() ?? ""
             ),
             "ED" => new EmbeddedDevice(
-                id: reader["Id"].ToString()!,
-                name: reader["Name"].ToString()!,
-                ip: reader["IpAddress"] is DBNull ? "" : reader["IpAddress"].ToString()!,
-                network: reader["NetworkName"] is DBNull ? "" : reader["NetworkName"].ToString()!
+                id,
+                name,
+                reader["IpAddress"] is DBNull 
+                    ? "0.0.0.0"
+                    : reader["IpAddress"]?.ToString() ?? "0.0.0.0",
+                reader["NetworkName"] is DBNull 
+                    ? "default" 
+                    : reader["NetworkName"]?.ToString() ?? "default"
             ),
             _ => null
         };
-
         if (device != null)
             devices.Add(device);
     }
-
     return devices;
 }
 
@@ -93,37 +93,44 @@ public Device? GetDeviceById(string id)
         LEFT JOIN Embedded e ON d.Id = e.DeviceId
         WHERE d.Id = @Id
     ", conn);
-
     cmd.Parameters.AddWithValue("@Id", id);
 
     using var reader = cmd.ExecuteReader();
-
     if (reader.Read())
     {
-        var type = reader["Type"].ToString();
+        var type = reader["Type"]?.ToString() ?? throw new InvalidOperationException("Device type is null");
+        var deviceId = reader["Id"]?.ToString() ?? throw new InvalidOperationException("Device ID is null");
+        var name = reader["Name"]?.ToString() ?? throw new InvalidOperationException($"Device name is null for ID {deviceId}");
 
         return type switch
         {
             "SW" => new Smartwatch(
-                reader["Id"].ToString()!,
-                reader["Name"].ToString()!,
-                reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) ? 0 : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
+                deviceId,
+                name,
+                reader.IsDBNull(reader.GetOrdinal("BatteryPercentage")) 
+                    ? 0 
+                    : reader.GetInt32(reader.GetOrdinal("BatteryPercentage"))
             ),
             "PC" => new PersonalComputer(
-                id: reader["Id"].ToString()!,
-                name: reader["Name"].ToString()!,
-                os: reader.IsDBNull(reader.GetOrdinal("OperationSystem")) ? "" : reader["OperationSystem"].ToString()!
+                id,
+                name,
+                reader.IsDBNull(reader.GetOrdinal("OperationSystem")) 
+                    ? "" 
+                    : reader["OperationSystem"]?.ToString() ?? ""
             ),
             "ED" => new EmbeddedDevice(
-                id: reader["Id"].ToString()!,
-                name: reader["Name"].ToString()!,
-                ip: reader.IsDBNull(reader.GetOrdinal("IPAddress")) ? "" : reader["IPAddress"].ToString()!,
-                network: reader.IsDBNull(reader.GetOrdinal("NetworkName")) ? "" : reader["NetworkName"].ToString()!
+                deviceId,
+                name,
+                reader.IsDBNull(reader.GetOrdinal("IPAddress")) 
+                    ? "0.0.0.0" 
+                    : reader["IPAddress"]?.ToString() ?? "0.0.0.0",
+                reader.IsDBNull(reader.GetOrdinal("NetworkName")) 
+                    ? "default" 
+                    : reader["NetworkName"]?.ToString() ?? "default"
             ),
             _ => null
         };
     }
-
     return null;
 }
 
@@ -298,8 +305,12 @@ private void ValidateDevice(Device device)
                 throw new ArgumentException("Network name cannot exceed 50 characters.");
             break;
 
-        case PersonalComputer pc when string.IsNullOrWhiteSpace(pc.OperatingSystem):
-            throw new ArgumentException("Operating system must be specified for personal computers.");
+        case PersonalComputer pc:
+            if (pc.IsTurnedOn && string.IsNullOrWhiteSpace(pc.OperatingSystem))
+            {
+                throw new ArgumentException("Operating system must be specified when PC is turned on.");
+            }
+            break;
     }
 }
 }
