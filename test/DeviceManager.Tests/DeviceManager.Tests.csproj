@@ -22,6 +22,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\src\DeviceManager.Core\DeviceManager.Core.csproj" />
+        <ProjectReference Include="..\..\src\DeviceManager.Data\DeviceManager.Data.csproj" />
         <ProjectReference Include="..\..\src\DeviceManager.Models\DeviceManager.Models.csproj" />
         <ProjectReference Include="..\..\src\DeviceManager.Logic\DeviceManager.Logic.csproj" />
         <ProjectReference Include="..\..\src\DeviceManager.API\DeviceManager.API.csproj" />
