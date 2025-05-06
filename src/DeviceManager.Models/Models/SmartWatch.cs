@@ -2,17 +2,23 @@
 
 namespace DeviceManager.Models.Models;
 
-public class Smartwatch : Device
+public class SmartWatch : Device
 {
+    public string Type { get; set; } = "SmartWatch";
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public int BatteryPercentage { get; set; }
 
     // Parameterless constructor
-    public Smartwatch() { }
-    public Smartwatch(string id, string name, int batteryPercentage)
+    public SmartWatch() { }
+
+    public SmartWatch(string id, string name, int batteryPercentage, byte[] rowVersion)
         : base(id, name)
     {
+        Type = "SmartWatch";
         BatteryPercentage = batteryPercentage;
+        RowVersion = rowVersion;
     }
+
     public override void TurnOn()
     {
         if (IsTurnedOn) return;
@@ -20,6 +26,7 @@ public class Smartwatch : Device
         BatteryPercentage -= 10;
         base.TurnOn();
     }
+
     public override string ToString()
     {
         return base.ToString() + $", Battery: {BatteryPercentage}%";

@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
-using APBD_02.Services;
-using DeviceManager.Models.InterFaces;
 using DeviceManager.Models.Models;
 using Microsoft.OpenApi.Models;
+using DeviceManager.Core.Interfaces;
+using DeviceManager.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -71,7 +71,7 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
                 var battery = json["BatteryPercentage"]?.GetValue<int>() ?? -1;
                 if (battery < 0 || battery > 100)
                     return Results.BadRequest("BatteryPercentage must be between 0-100.");
-                device = new Smartwatch
+                device = new SmartWatch
                 {
                     Id = generatedId,
                     Name = name,
@@ -121,7 +121,7 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
                     return Results.BadRequest("Smartwatch requires 4 fields.");
                 if (!int.TryParse(parts[3].Replace("%", ""), out int bp))
                     return Results.BadRequest("Invalid battery percentage.");
-                device = new Smartwatch
+                device = new SmartWatch
                 {
                     Id = generatedId,
                     Name = name,
@@ -185,7 +185,7 @@ app.MapPut("/api/devices/{id}", (string id, DeviceDTO dto, IDeviceService servic
         return Results.BadRequest("Device type mismatch.");
     switch (dto.Type)
     {
-        case "SW" when existing is Smartwatch sw:
+        case "SW" when existing is SmartWatch sw:
             if (dto.BatteryPercentage is < 0 or > 100)
                 return Results.BadRequest("BatteryPercentage must be between 0 and 100.");
             sw.Name = dto.Name;

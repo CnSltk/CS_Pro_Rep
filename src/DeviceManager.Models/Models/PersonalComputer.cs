@@ -4,12 +4,18 @@ namespace DeviceManager.Models.Models
 {
     public class PersonalComputer : Device
     {
+        public string Type { get; set; } = "PC";
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
         public string OperatingSystem { get; set; }
+
         public PersonalComputer() { }
 
-        public PersonalComputer(string id, string name, string os) : base(id, name)
+        public PersonalComputer(string id, string name, string os, byte[] rowVersion)
+            : base(id, name)
         {
             OperatingSystem = os;
+            Type = "PC";
+            RowVersion = rowVersion;
         }
 
         public override void TurnOn()
@@ -20,6 +26,7 @@ namespace DeviceManager.Models.Models
 
             base.TurnOn();
         }
+
         public override string ToString()
         {
             return base.ToString() + $", OS: {OperatingSystem}";

@@ -6,11 +6,6 @@ public class DeviceManager
 {
     private readonly List<Device> _devices;
 
-    public DeviceManager(string filePath)
-    {
-        _devices = DataLoader.LoadDevicesFromFile(filePath).ToList();
-    }
-
     public IEnumerable<Device> GetAllDevices()
     {
         return _devices;
