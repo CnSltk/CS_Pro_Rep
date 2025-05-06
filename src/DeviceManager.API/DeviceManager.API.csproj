@@ -19,7 +19,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DeviceManager.Data\DeviceManager.Data.csproj" />
       <ProjectReference Include="..\DeviceManager.Logic\DeviceManager.Logic.csproj" />
+        <ProjectReference Include="..\DeviceManager.Core\DeviceManager.Core.csproj" />
     </ItemGroup>
 
 </Project>
