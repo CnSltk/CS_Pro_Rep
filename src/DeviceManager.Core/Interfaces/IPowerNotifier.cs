@@ -1,4 +1,4 @@
-﻿namespace DeviceManager.Models.InterFaces;
+﻿namespace DeviceManager.Core.Interfaces;
 /// <summary>
 /// Notifies low battery for device
 /// </summary>

@@ -1,6 +1,6 @@
 ﻿using DeviceManager.Models.Models;
 
-namespace DeviceManager.Models.InterFaces;
+namespace DeviceManager.Core.Interfaces;
 
 public interface IDeviceService
 {
