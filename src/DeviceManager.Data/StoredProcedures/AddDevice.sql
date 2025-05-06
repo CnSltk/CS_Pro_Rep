@@ -1,12 +1,12 @@
 ﻿CREATE OR ALTER PROCEDURE AddDevice
-    @Id NVARCHAR(50),
-    @Name NVARCHAR(100),
-    @IsEnabled BIT,
-    @Type NVARCHAR(50),
-    @BatteryPercentage INT = NULL,
-    @OperationSystem NVARCHAR(100) = NULL,
-    @IpAddress NVARCHAR(50) = NULL,
-    @NetworkName NVARCHAR(100) = NULL
+    @Id               NVARCHAR(50),
+    @Name             NVARCHAR(100),
+    @IsEnabled        BIT,
+    @Type             NVARCHAR(50),
+    @BatteryPercentage INT             = NULL,
+    @OperationSystem  NVARCHAR(100)    = NULL,
+    @IpAddress        NVARCHAR(50)     = NULL,
+    @NetworkName      NVARCHAR(100)    = NULL
     AS
 BEGIN
     SET NOCOUNT ON;

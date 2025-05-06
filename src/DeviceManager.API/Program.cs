@@ -3,6 +3,8 @@ using DeviceManager.Models.Models;
 using Microsoft.OpenApi.Models;
 using DeviceManager.Core.Interfaces;
 using DeviceManager.Core.Services;
+using DeviceManager.Data.Database;
+using DeviceManager.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -14,6 +16,9 @@ builder.Services.AddSwaggerGen(c =>
 var connectionString = builder.Configuration.GetConnectionString("DeviceManager") 
                        ?? throw new InvalidOperationException("Connection string 'DeviceManager' not found.");
 builder.Services.AddSingleton<IDeviceService>(_ => new DeviceService(connectionString));
+builder.Services.AddSingleton(new SqlConnectionFactory(connectionString));
+builder.Services.AddScoped<IDeviceRepository, DeviceRepository>();
+
 
 var app = builder.Build();
 app.UseSwagger();
@@ -43,65 +48,58 @@ app.MapGet("/api/devices/{id}", (string id, IDeviceService service) =>
 // POST new device
 app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) =>
 {
-    string? contentType = request.ContentType?.ToLower();
-
+    var contentType = request.ContentType?.Split(';')[0].Trim().ToLower();
     if (string.IsNullOrWhiteSpace(contentType))
         return Results.BadRequest("Missing Content-Type.");
 
     string rawBody;
-    using var reader = new StreamReader(request.Body);
-    rawBody = await reader.ReadToEndAsync();
+    using (var sr = new StreamReader(request.Body))
+    {
+        rawBody = await sr.ReadToEndAsync();
+    }
 
-    Device? device = null;
-    string generatedId = Guid.NewGuid().ToString(); 
+    string prefix;
+    Device device;
 
     if (contentType == "application/json")
     {
-        var json = JsonNode.Parse(rawBody);
-        if (json == null) return Results.BadRequest("Invalid JSON.");
+        JsonNode? json = JsonNode.Parse(rawBody);
+        if (json is null)
+            return Results.BadRequest("Invalid JSON.");
 
-        var type = json["Type"]?.ToString();
-        var name = json["Name"]?.ToString();
+        var t = json["Type"]?.GetValue<string>()?.ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(t))
+            return Results.BadRequest("Type is required.");
+        prefix = t;
 
+        var name = json["Name"]?.GetValue<string>();
         if (string.IsNullOrWhiteSpace(name))
             return Results.BadRequest("Name is required.");
-        switch (type)
+
+        switch (prefix)
         {
             case "SW":
                 var battery = json["BatteryPercentage"]?.GetValue<int>() ?? -1;
                 if (battery < 0 || battery > 100)
                     return Results.BadRequest("BatteryPercentage must be between 0-100.");
-                device = new SmartWatch
-                {
-                    Id = generatedId,
-                    Name = name,
-                    BatteryPercentage = battery
-                };
+                device = new SmartWatch("", name, battery, Array.Empty<byte>());
                 break;
+
             case "PC":
-                var os = json["OperatingSystem"]?.ToString();
+                var os = json["OperatingSystem"]?.GetValue<string>();
                 if (string.IsNullOrWhiteSpace(os))
                     return Results.BadRequest("OperatingSystem is required for PC.");
-                device = new PersonalComputer
-                {
-                    Id = generatedId,
-                    Name = name,
-                    OperatingSystem = os
-                };
+                device = new PersonalComputer("", name, os, Array.Empty<byte>());
                 break;
+
             case "ED":
-                var ip = json["IPAddress"]?.ToString();
-                var net = json["NetworkName"]?.ToString();
+                var ip  = json["IPAddress"]?.GetValue<string>();
+                var net = json["NetworkName"]?.GetValue<string>();
                 if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(net))
                     return Results.BadRequest("IPAddress and NetworkName are required for ED.");
-                device = new EmbeddedDevice
-                {
-                    Id = generatedId,
-                    Name = name,
-                    IPAddress = ip,
-                    NetworkName = net
-                };
+                device = new EmbeddedDevice("", name, ip, net, Array.Empty<byte>());
                 break;
+
             default:
                 return Results.BadRequest("Invalid Type.");
         }
@@ -111,115 +109,138 @@ app.MapPost("/api/devices", async (HttpRequest request, IDeviceService service) 
         var parts = rawBody.Split(',');
         if (parts.Length < 3)
             return Results.BadRequest("Invalid text format.");
-        var name = parts[1];
-        var prefix = parts[0].Substring(0, 2);
 
-        switch (prefix) 
+        prefix = parts[0].Substring(0, 2).ToUpperInvariant();
+        var name = parts[1].Trim();
+
+        switch (prefix)
         {
             case "SW":
-                if (parts.Length != 4)
-                    return Results.BadRequest("Smartwatch requires 4 fields.");
-                if (!int.TryParse(parts[3].Replace("%", ""), out int bp))
-                    return Results.BadRequest("Invalid battery percentage.");
-                device = new SmartWatch
-                {
-                    Id = generatedId,
-                    Name = name,
-                    BatteryPercentage = bp
-                };
+                if (parts.Length != 4
+                    || !int.TryParse(parts[3].TrimEnd('%'), out var bp)
+                    || bp < 0 || bp > 100)
+                    return Results.BadRequest("SmartWatch requires name,battery%.");
+                device = new SmartWatch("", name, bp, Array.Empty<byte>());
                 break;
+
             case "PC":
-                device = new PersonalComputer
-                {
-                    Id = generatedId,
-                    Name = name,
-                    OperatingSystem = parts.Length >= 4 ? parts[3] : "",
-                };
+                var os = parts.Length >= 4 ? parts[3].Trim() : "";
+                device = new PersonalComputer("", name, os, Array.Empty<byte>());
                 break;
+
             case "ED":
                 if (parts.Length != 4)
-                    return Results.BadRequest("Embedded requires 4 fields.");
-                device = new EmbeddedDevice
-                {
-                    Id = generatedId,
-                    Name = name,
-                    IPAddress = parts[2],
-                    NetworkName = parts[3]
-                };
+                    return Results.BadRequest("Embedded requires name,ip,network.");
+                device = new EmbeddedDevice("", name, parts[2].Trim(), parts[3].Trim(), Array.Empty<byte>());
                 break;
+
             default:
-                return Results.BadRequest("Invalid device type prefix."); 
+                return Results.BadRequest("Invalid device type prefix.");
         }
     }
-    else {
+    else
+    {
         return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
     }
+    device.Type = prefix;
+    var existingNumbers = service.GetAllDevices()
+        .Select(d => d.Id)
+        .Where(id => id.StartsWith(prefix + "-"))
+        .Select(id => int.TryParse(id.Split('-', 2)[1], out var n) ? n : 0)
+        .Where(n => n >= 1 && n <= 1000)
+        .ToHashSet();
+
+    int freeNum = Enumerable.Range(1, 1000).FirstOrDefault(n => !existingNumbers.Contains(n));
+    if (freeNum == 0)
+        return Results.Conflict($"No more IDs available for type {prefix}.");
+
+    device.Id = $"{prefix}-{freeNum}";
 
     service.AddDevice(device);
+
     return Results.Created($"/api/devices/{device.Id}", device);
 })
-.Accepts<string>("application/json", ["text/plain"]);
+.Accepts<string>("application/json", "text/plain")
+.Produces<Device>(StatusCodes.Status201Created)
+.ProducesProblem(StatusCodes.Status400BadRequest)
+.ProducesProblem(StatusCodes.Status409Conflict)
+.ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
 
 
 //PUT Update a Device by ID
 app.MapPut("/api/devices/{id}", (string id, DeviceDTO dto, IDeviceService service) =>
 {
+    if (dto is null)
+        return Results.BadRequest(new { error = "Request body is required." });
+
     var existing = service.GetDeviceById(id);
-    if (existing == null)
-        return Results.NotFound();
+    if (existing is null)
+        return Results.NotFound(new { error = $"Device '{id}' not found." });
 
     if (string.IsNullOrWhiteSpace(dto.Name))
-        return Results.BadRequest("Name is required.");
+        return Results.BadRequest(new { error = "Name is required." });
 
     if (string.IsNullOrWhiteSpace(dto.Type))
-        return Results.BadRequest("Type is required.");
-    var expectedTypeName = dto.Type switch 
-    { 
-        "SW" => "Smartwatch", 
-        "PC" => "PersonalComputer", 
-        "ED" => "EmbeddedDevice", 
-        _ => null 
-    };
+        return Results.BadRequest(new { error = "Type is required." });
     
-    if (existing.GetType().Name != expectedTypeName)
-        return Results.BadRequest("Device type mismatch.");
-    switch (dto.Type)
+    if (dto.Type == "SW" && existing is not SmartWatch ||
+        dto.Type == "PC" && existing is not PersonalComputer ||
+        dto.Type == "ED" && existing is not EmbeddedDevice)
     {
-        case "SW" when existing is SmartWatch sw:
-            if (dto.BatteryPercentage is < 0 or > 100)
-                return Results.BadRequest("BatteryPercentage must be between 0 and 100.");
-            sw.Name = dto.Name;
-            sw.BatteryPercentage = dto.BatteryPercentage ?? sw.BatteryPercentage;
-            break;
-
-        case "PC" when existing is PersonalComputer pc:
-            if (string.IsNullOrWhiteSpace(dto.OperatingSystem))
-                return Results.BadRequest("OperatingSystem is required.");
-            pc.Name = dto.Name;
-            pc.OperatingSystem = dto.OperatingSystem;
-            break;
-
-        case "ED" when existing is EmbeddedDevice ed:
-            if (string.IsNullOrWhiteSpace(dto.IPAddress) || string.IsNullOrWhiteSpace(dto.NetworkName))
-                return Results.BadRequest("IPAddress and NetworkName are required.");
-            ed.Name = dto.Name;
-            ed.IPAddress = dto.IPAddress;
-            ed.NetworkName = dto.NetworkName;
-            break;
-
-        default:
-            return Results.BadRequest("Invalid device type or mismatch.");
+        return Results.BadRequest(new { error = "Device type mismatch." });
     }
+    existing.Name       = dto.Name;
+    existing.IsTurnedOn = dto.IsEnabled; 
+    existing.Type       = dto.Type;
+    
+    switch (existing)
+    {
+        case SmartWatch sw:
+            if (dto.BatteryPercentage is < 0 or > 100)
+                return Results.BadRequest(new { error = "BatteryPercentage must be between 0 and 100." });
+            sw.BatteryPercentage = dto.BatteryPercentage!.Value;
+            break;
 
-    bool updated = service.UpdateDevice(id, existing);
-    return updated ? Results.Ok(existing) : Results.StatusCode(500);
-});
+        case PersonalComputer pc:
+            if (string.IsNullOrWhiteSpace(dto.OperatingSystem))
+                return Results.BadRequest(new { error = "OperatingSystem is required for PC." });
+            pc.OperatingSystem = dto.OperatingSystem!;
+            break;
 
-// DELETE device
-app.MapDelete("/api/devices/{id}", (string id, IDeviceService service) =>
-{
-    bool deleted = service.DeleteDevice(id);
-    return deleted ? Results.Ok($"Device {id} deleted.") : Results.NotFound($"Device {id} not found.");
-});
+        case EmbeddedDevice ed:
+            if (string.IsNullOrWhiteSpace(dto.IPAddress) || string.IsNullOrWhiteSpace(dto.NetworkName))
+                return Results.BadRequest(new { error = "IPAddress and NetworkName are required for ED." });
+            ed.IPAddress   = dto.IPAddress!;
+            ed.NetworkName = dto.NetworkName!;
+            break;
+    }
+    
+    var updated = service.UpdateDevice(id, existing);
+    if (!updated)
+        return Results.Conflict(new { error = "Update failed or no rows affected." });
+
+    return Results.Ok(existing);
+})
+.Accepts<DeviceDTO>("application/json")
+.Produces<Device>(200)
+.ProducesProblem(400)
+.ProducesProblem(404)
+.ProducesProblem(409);
+
+//DELETE delete devices
+app.MapDelete("/api/devices/{id}", async (string id, IDeviceRepository repository) =>
+    {
+        var existing = await repository.GetDeviceByIdAsync(id);
+        if (existing is null)
+            return Results.NotFound(new { error = $"Device '{id}' not found." });
+
+        await repository.DeleteDeviceAsync(id, existing.Type);
+        return Results.Ok($"Device '{id}'deleted.");
+    })
+    .Produces(204)
+    .ProducesProblem(404)
+    .ProducesProblem(500);
+
+
 
 app.Run();
