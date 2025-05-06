@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\DeviceManager.Data\DeviceManager.Data.csproj" />
+      <ProjectReference Include="..\DeviceManager.Logic\DeviceManager.Logic.csproj" />
+      <ProjectReference Include="..\DeviceManager.Models\DeviceManager.Models.csproj" />
+    </ItemGroup>
+
+</Project>
